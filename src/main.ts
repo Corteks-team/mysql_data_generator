@@ -83,10 +83,10 @@ async function main() {
         return;
     }
 
-    const options: Schema = readJSONSync('./schema.json');
+    const schema: Schema = readJSONSync('./schema.json');
 
-    const tableService = new TableService(dbConnection, options.maxCharLength || 255, options.values);
-    for (const table of options.tables) {
+    const tableService = new TableService(dbConnection, schema.maxCharLength || 255, schema.values);
+    for (const table of schema.tables) {
         if (table.lines > 0) {
             // await tableService.empty(table);
             await tableService.fill(table);
