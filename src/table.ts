@@ -48,14 +48,14 @@ export class TableService {
                 for (var c = 0; c < table.columns.length; c++) {
                     const column = table.columns[c];
                     if (column.options.autoIncrement) continue;
-                    if (column.options.foreignKey) {
-                        const values = await this.getForeignValues(column.options.foreignKey.table, column.options.foreignKey.column);
+                    if (column.foreignKey) {
+                        const values = await this.getForeignValues(column.foreignKey.table, column.foreignKey.column);
                         if (column.options.nullable) values.push(null);
                         row[column.name] = values[Randomizer.randomInt(0, values.length - 1)];
                         continue;
                     }
-                    if (column.options.values) {
-                        row[column.name] = this.values[column.options.values][Randomizer.randomInt(0, this.values[column.options.values].length - 1)];
+                    if (column.values) {
+                            row[column.name] = this.values[column.values][Randomizer.randomInt(0, this.values[column.values].length - 1)];
                         continue;
                     }
                     switch (column.generator) {

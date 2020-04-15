@@ -49,8 +49,8 @@ export class Analyser {
                 // TODO: handle custom foreign keys
                 if (customTable && customTable.columns) {
                     for (const column of customTable.columns) {
-                        if (column.options && column.options.foreignKey) {
-                            if (table.referenced_table) table.referenced_table += `,${column.options.foreignKey.table}`;
+                        if (column.foreignKey) {
+                            if (table.referenced_table) table.referenced_table += `,${column.foreignKey.table}`;
                         }
                     }
                 }
@@ -132,10 +132,12 @@ export class Analyser {
                 const customColumn = customTable.columns.find(cc => cc.name.toLowerCase() === column.name.toLowerCase());
                 const match = foreignKeys.find((fk) => fk.column_name.toLowerCase() === column.name.toLowerCase());
                 if (match) {
-                    column.options.foreignKey = { table: match.referenced_table_name, column: match.referenced_column_name };
+                    column.foreignKey = { table: match.referenced_table_name, column: match.referenced_column_name };
                 }
                 if (customColumn) {
                     column.options = Object.assign({}, column.options, customColumn.options);
+                    column.foreignKey = customColumn.foreignKey;
+                    column.values = customColumn.values;
                 }
             }
         }

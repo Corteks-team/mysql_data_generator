@@ -7,10 +7,10 @@ export interface Column {
         max?: number;
         unsigned?: boolean;
         autoIncrement?: boolean;
+    };
         foreignKey?: {
             table: string;
             column: string;
         };
-        values?: string;
-    };
+    values?: string;
 }
