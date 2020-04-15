@@ -79,7 +79,7 @@ async function main() {
         await analyser.extractTables();
         await analyser.extractColumns();
         const json = analyser.generateJson();
-        writeJSONSync('./schema.json', json);
+        writeJSONSync('./schema.json', json, { spaces: 4 });
         return;
     }
 
