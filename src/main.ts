@@ -45,6 +45,10 @@ async function main() {
             alias: 'a',
             type: 'boolean',
         },
+        reset: {
+            alias: 'r',
+            type: 'boolean',
+        },
     }).argv;
 
     let host = '127.0.0.1';
@@ -88,7 +92,7 @@ async function main() {
     const tableService = new TableService(dbConnection, schema.maxCharLength || 255, schema.values);
     for (const table of schema.tables) {
         if (table.lines > 0) {
-            // await tableService.empty(table);
+            if (argv.reset) await tableService.empty(table);
             await tableService.fill(table);
         }
     }
