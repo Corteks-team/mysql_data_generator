@@ -1,3 +1,5 @@
+export type Values = string | string[];
+
 export interface Column {
     name: string;
     generator: string;
@@ -8,9 +10,9 @@ export interface Column {
         unsigned?: boolean;
         autoIncrement?: boolean;
     };
-        foreignKey?: {
-            table: string;
-            column: string;
-        };
-    values?: string;
+    foreignKey?: {
+        table: string;
+        column: string;
+    };
+    values?: Values;
 }

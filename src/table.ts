@@ -55,7 +55,11 @@ export class TableService {
                         continue;
                     }
                     if (column.values) {
+                        if (Array.isArray(column.values)) {
+                            row[column.name] = column.values[Randomizer.randomInt(0, column.values.length - 1)];
+                        } else {
                             row[column.name] = this.values[column.values][Randomizer.randomInt(0, this.values[column.values].length - 1)];
+                        }
                         continue;
                     }
                     switch (column.generator) {
