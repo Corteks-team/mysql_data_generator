@@ -46,11 +46,11 @@ export class Analyser {
             if (this.customSchema) {
                 const customTable = this.customSchema.tables.find(t => t.name.toLowerCase() === table.name.toLowerCase());
                 if (customTable) lines = customTable.lines;
-                // TODO: handle custom foreign keys
                 if (customTable && customTable.columns) {
                     for (const column of customTable.columns) {
                         if (column.foreignKey) {
                             if (table.referenced_table) table.referenced_table += `,${column.foreignKey.table}`;
+                            else table.referenced_table = `${column.foreignKey.table}`;
                         }
                     }
                 }
