@@ -42,7 +42,7 @@ export class TableService {
         let currentNbRows: number = await this.getLines(table);
         while (currentNbRows < table.lines) {
             const rows = [];
-            const runRows = Math.min(10000, table.lines - currentNbRows);
+            const runRows = Math.min(1000, table.lines - currentNbRows);
             for (let i = 0; i < runRows; i++) {
                 const row = {};
                 for (var c = 0; c < table.columns.length; c++) {
