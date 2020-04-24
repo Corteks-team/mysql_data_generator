@@ -3,3 +3,5 @@ src
 .gitignore
 tsconfig.json
 tslint.json
+custom_schema.json
+schema.json

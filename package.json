@@ -1,6 +1,6 @@
 {
     "name": "@corteks/mysql-data-generator",
-    "version": "0.1.0",
+    "version": "0.1.2",
     "author": "Corteks",
     "keywords": [
         "database",
@@ -10,7 +10,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/Corteks-team/mysql_data_generator"
+        "url": "git+https://github.com/Corteks-team/mysql_data_generator.git"
     },
     "main": "lib/main.js",
     "bin": {
@@ -42,10 +42,18 @@
         "typescript": "^3.8.3",
         "typescript-tslint-plugin": "^0.5.5"
     },
-    "license": "GPL",
+    "license": "GPL-3.0-or-later",
     "scripts": {
         "dev": "nodemon",
         "build": "tsc",
         "prepublishOnly": "tsc"
+    },
+    "description": "This is a tool to easily fill a SQL database.  \r It is able to analyse a schema and generate a `schema.json` which will be used to generate accurate data. It does its best to handle foreign keys.  \r You can provide a `custom_schema.json` to customize `schema.json` during the analyse phase. This will allow you to override datatype for a column, force the use of a foreign key\r or specify a list of values.",
+    "bugs": {
+        "url": "https://github.com/Corteks-team/mysql_data_generator/issues"
+    },
+    "homepage": "https://github.com/Corteks-team/mysql_data_generator#readme",
+    "directories": {
+        "lib": "lib"
     }
 }
