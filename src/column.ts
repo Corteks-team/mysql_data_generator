@@ -5,8 +5,8 @@ export interface Column {
     generator: string;
     options: {
         nullable?: boolean;
-        min?: number;
-        max?: number;
+        min: number;
+        max: number;
         unsigned?: boolean;
         autoIncrement?: boolean;
         unique?: boolean;

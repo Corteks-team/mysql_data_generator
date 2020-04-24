@@ -4,12 +4,22 @@ import { Schema } from './main';
 import { MySQLColumn } from './mysql-column';
 import { Table } from './table';
 
+
 export interface CustomSchema {
     maxCharLength?: number;
     ignoredTables?: string[];
     tables?: Partial<Table>[];
     values?: { [key: string]: any[]; };
 }
+
+const DEFAULT_MAX_CHAR_LENGTH: number = 255;
+
+const dummyCustomSchema: CustomSchema = {
+    maxCharLength: DEFAULT_MAX_CHAR_LENGTH,
+    ignoredTables: [],
+    tables: [],
+    values: {}
+};
 
 export class Analyser {
     private tables: Table[] = [];
@@ -18,10 +28,9 @@ export class Analyser {
     constructor(
         private dbConnection: Knex,
         private database: string,
-        private customSchema?: CustomSchema,
+        private customSchema: CustomSchema = dummyCustomSchema,
     ) {
-        if (customSchema && customSchema.values) this.values = customSchema.values;
-        else this.values = {};
+        this.values = customSchema.values || {};
     }
 
     public extractTables = async () => {
@@ -43,8 +52,8 @@ export class Analyser {
         for (let t = 0; t < tables.length; t++) {
             const table = tables[t];
             let lines;
-            if (this.customSchema) {
-                const customTable = this.customSchema.tables.find(t => t.name.toLowerCase() === table.name.toLowerCase());
+            if (this.customSchema.tables) {
+                const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
                 if (customTable) lines = customTable.lines;
                 if (customTable && customTable.columns) {
                     for (const column of customTable.columns) {
@@ -71,7 +80,7 @@ export class Analyser {
                 const referencedTable = tables.find((t) => {
                     return t.name === tableName;
                 });
-                if (referencedTable) recursive([].concat(branch, referencedTable));
+                if (referencedTable) recursive(([] as any).concat(branch, referencedTable));
             };
 
             if (table.referenced_table.length === 0) {
@@ -93,20 +102,31 @@ export class Analyser {
 
     public extractColumns = async () => {
         for (const table of this.tables) {
-            const customTable = Object.assign({}, { columns: [] }, this.customSchema.tables.find(t => t.name.toLowerCase() === table.name.toLowerCase()));
+            const customTable: Table = Object.assign({
+                name: '',
+                columns: [],
+                lines: 0
+            }, this.customSchema.tables?.find(t => t.name?.toLowerCase() === table.name.toLowerCase()));
             const columns: MySQLColumn[] = await this.dbConnection.select()
                 .from('information_schema.COLUMNS')
                 .where({ 'TABLE_NAME': table.name });
 
             columns
                 .filter((column: MySQLColumn) => {
-                    return ['enum', 'set'].includes(column.DATA_TYPE);
+                    return ['enum', 'set'].includes(column.DATA_TYPE || '');
                 }).forEach((column: MySQLColumn) => {
-                    column.NUMERIC_PRECISION = column.COLUMN_TYPE.match(/[enum,set]\((.*)\)$/)[1].split('\',\'').length;
+                    column.NUMERIC_PRECISION = column.COLUMN_TYPE.match(/[enum,set]\((.*)\)$/)![1].split('\',\'').length;
                 });
 
             table.columns = columns.map((column: MySQLColumn) => {
-                const options: Column['options'] = {};
+                const options: Column['options'] = {
+                    max: 0,
+                    min: 0,
+                    autoIncrement: false,
+                    nullable: false,
+                    unique: false,
+                    unsigned: false
+                };
                 if (column.IS_NULLABLE === 'YES') options.nullable = true;
                 options.max = column.CHARACTER_MAXIMUM_LENGTH || column.NUMERIC_PRECISION;
                 if (column.COLUMN_TYPE.includes('unsigned')) options.unsigned = true;
@@ -171,7 +191,7 @@ export class Analyser {
 
     public generateJson(): Schema {
         return {
-            maxCharLength: this.customSchema.maxCharLength || 255,
+            maxCharLength: this.customSchema.maxCharLength || DEFAULT_MAX_CHAR_LENGTH,
             tables: this.tables,
             values: this.values,
         };

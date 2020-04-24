@@ -47,7 +47,7 @@ export class TableService {
                         if (foreignKey.where) {
                             query.andWhere(this.dbConnection.raw(foreignKey.where));
                         }
-                        values = (await query).map(result => result[column.foreignKey.column]);
+                        values = (await query).map(result => result[column.foreignKey!.column]);
                         if (values.length === 0) {
                             throw new Error(`${table.name}: Not enough unique values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
                         }
@@ -57,7 +57,7 @@ export class TableService {
                     if (foreignKey.where) {
                         query.andWhere(this.dbConnection.raw(foreignKey.where));
                     }
-                    values = (await query).map(result => result[column.foreignKey.column]);
+                    values = (await query).map(result => result[column.foreignKey!.column]);
                     if (values.length === 0 && !column.options.nullable) {
                         throw new Error(`${table.name}: Not enough values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
                     }
@@ -91,7 +91,7 @@ export class TableService {
             }
 
             for (let i = 0; i < runRows; i++) {
-                const row = {};
+                const row: { [key: string]: any; } = {};
                 for (var c = 0; c < table.columns.length; c++) {
                     const column = table.columns[c];
                     if (column.options.autoIncrement) continue;

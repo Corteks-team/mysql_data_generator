@@ -1,5 +1,5 @@
 import { readJSONSync, writeJSONSync } from 'fs-extra';
-import * as Knex from 'knex';
+import Knex from 'knex';
 import * as yargs from 'yargs';
 import { Analyser, CustomSchema } from './analyser';
 import { Table, TableService } from './table';
@@ -17,7 +17,7 @@ export interface Schema {
     values: { [key: string]: any[]; };
 }
 
-let dbConnection: Knex | null;
+let dbConnection: Knex | undefined = undefined;
 
 async function main() {
     const argv = yargs.options({
@@ -75,6 +75,22 @@ async function main() {
 
     if (argv.analyse) {
         const customSchema: CustomSchema = readJSONSync('./custom_schema.json');
+
+        /*customSchema.tables.forEach((table) => {
+            if (!table.columns) return;
+            table.columns.forEach((column) => {
+                if (column.options && (column.options as any).values) {
+                    column.values = (column.options as any).values;
+                    delete (column.options as any).values;
+                    if (Object.keys(column.options).length === 0) delete column.options;
+                }
+
+            });
+        });
+        writeJSONSync('./custom_schema.json', customSchema);
+        process.exit();*/
+
+
         const analyser = new Analyser(
             dbConnection,
             argv.database,
@@ -98,10 +114,9 @@ async function main() {
     }
 }
 
-(async () => {
-    await main();
-
-    if (dbConnection) {
-        await dbConnection.destroy();
-    }
-})();
+main()
+    .then(() => {
+        if (dbConnection) {
+            return dbConnection.destroy();
+        }
+    });
