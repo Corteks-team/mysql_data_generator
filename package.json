@@ -1,4 +1,28 @@
 {
+    "name": "@corteks/mysql-data-generator",
+    "version": "0.1.0",
+    "author": "Corteks",
+    "keywords": [
+        "database",
+        "random",
+        "mysql",
+        "mariadb"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Corteks-team/mysql_data_generator"
+    },
+    "main": "lib/main.js",
+    "bin": {
+        "mysqldatagen": "bin/mysqldatagen"
+    },
+    "files": [
+        "bin",
+        "lib"
+    ],
+    "engines": {
+        "node": ">= 12.16.2"
+    },
     "dependencies": {
         "fs-extra": "^9.0.0",
         "knex": "^0.20.13",
@@ -21,6 +45,7 @@
     "license": "GPL",
     "scripts": {
         "dev": "nodemon",
-        "start": "node --require ts-node/register src/main.ts"
+        "build": "tsc",
+        "prepublishOnly": "tsc"
     }
 }
