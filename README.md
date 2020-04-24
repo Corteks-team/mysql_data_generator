@@ -5,22 +5,22 @@ or specify a list of values.
 
 The first step is to analyse your database to generate a `schema.json` by providing database credentials:
 ````
-npm install
+npm install -g
 
-npm run start -- -h 127.0.0.1 -u USER -p PASSWORD --db DATABASE -a
+mysqldatagen -h 127.0.0.1 -u USER -p PASSWORD --db DATABASE -a
 ````
 
 If you want to customize the schema, rename `schema.json` to `custom_schema.json`.
 Update the `custom_schema.json` to fit your needs and every time you will run:
 ````
-npm run start -- -h 127.0.0.1 -u USER -p PASSWORD --db DATABASE -a
+mysqldatagen -h 127.0.0.1 -u USER -p PASSWORD --db DATABASE -a
 ````
 
 The `schema.json` will now take in account your modification.
 
 Next step is to fill the database with randomly generated values:
 ````
-npm run start -- -h 192.168.1.5 -u USER -p PASSWORD --db DATABASE
+mysqldatagen -h 127.0.0.1 -u USER -p PASSWORD --db DATABASE
 ````
 
 For every tables listed in `schema.json`, the tool will:
