@@ -9,10 +9,12 @@ export interface Column {
         max?: number;
         unsigned?: boolean;
         autoIncrement?: boolean;
+        unique?: boolean;
     };
     foreignKey?: {
         table: string;
         column: string;
+        where?: string;
     };
     values?: Values;
 }

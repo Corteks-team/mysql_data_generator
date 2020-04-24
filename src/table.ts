@@ -17,14 +17,6 @@ export class TableService {
         private values: { [key: string]: any[]; }
     ) { }
 
-    async getForeignValues(table: string, column: string): Promise<any[]> {
-        const pointer = `${table}.${column}`;
-        if (!this.foreignValues[pointer] || this.foreignValues[pointer].length === 0) {
-            this.foreignValues[pointer] = (await this.dbConnection(table).distinct(column)).map(result => result[column]);
-        }
-        return [].concat(this.foreignValues[pointer]);
-    }
-
     async getLines(table: Table) {
         const nbLines = (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
         return nbLines;
@@ -37,21 +29,75 @@ export class TableService {
         await this.dbConnection.raw(`ALTER TABLE ${table.name} AUTO_INCREMENT = 1;`);
     }
 
+    async getForeignKeyValues(table: Table, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows?: number) {
+        for (var c = 0; c < table.columns.length; c++) {
+            const column = table.columns[c];
+            if (column.foreignKey) {
+                const foreignKey = column.foreignKey;
+                let values = [];
+                if (column.options.unique) {
+                    if (runRows) {
+                        const query = this.dbConnection(foreignKey.table)
+                            .distinct(`${foreignKey.table}.${foreignKey.column}`)
+                            .leftJoin(table.name, function () {
+                                this.on(`${table.name}.${column.name}`, `${foreignKey.table}.${foreignKey.column}`);
+                            })
+                            .whereNull(`${table.name}.${column.name}`)
+                            .limit(runRows);
+                        if (foreignKey.where) {
+                            query.andWhere(this.dbConnection.raw(foreignKey.where));
+                        }
+                        values = (await query).map(result => result[column.foreignKey.column]);
+                        if (values.length === 0) {
+                            throw new Error(`${table.name}: Not enough unique values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
+                        }
+                    }
+                } else {
+                    const query = this.dbConnection(column.foreignKey.table).distinct(column.foreignKey.column);
+                    if (foreignKey.where) {
+                        query.andWhere(this.dbConnection.raw(foreignKey.where));
+                    }
+                    values = (await query).map(result => result[column.foreignKey.column]);
+                    if (values.length === 0 && !column.options.nullable) {
+                        throw new Error(`${table.name}: Not enough values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
+                    }
+                }
+                tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
+            }
+        }
+    }
+
     async fill(table: Table) {
         console.log('fill: ', table.name);
+        const tableForeignKeyValues: { [key: string]: any[]; } = {};
+
+        try {
+            await this.getForeignKeyValues(table, tableForeignKeyValues);
+        } catch (ex) {
+            console.warn(ex.message);
+            return;
+        }
+
         let currentNbRows: number = await this.getLines(table);
-        while (currentNbRows < table.lines) {
+        batch: while (currentNbRows < table.lines) {
             const rows = [];
             const runRows = Math.min(1000, table.lines - currentNbRows);
+
+            try {
+                await this.getForeignKeyValues(table, tableForeignKeyValues, runRows);
+            } catch (ex) {
+                console.warn(ex.message);
+                break batch;
+            }
+
             for (let i = 0; i < runRows; i++) {
                 const row = {};
                 for (var c = 0; c < table.columns.length; c++) {
                     const column = table.columns[c];
                     if (column.options.autoIncrement) continue;
                     if (column.foreignKey) {
-                        const values = await this.getForeignValues(column.foreignKey.table, column.foreignKey.column);
-                        if (column.options.nullable) values.push(null);
-                        row[column.name] = values[Randomizer.randomInt(0, values.length - 1)];
+                        const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
+                        row[column.name] = foreignKeys[Randomizer.randomInt(0, foreignKeys.length - 1)];
                         continue;
                     }
                     if (column.values) {

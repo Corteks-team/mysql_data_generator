@@ -118,14 +118,39 @@ export class Analyser {
                 };
             });
 
+            const subQuery = this.dbConnection
+                .select([
+                    'kcu2.table_name',
+                    'kcu2.column_name',
+                    'kcu2.constraint_schema',
+                    this.dbConnection.raw('1 AS unique_index')
+                ])
+                .from('information_schema.KEY_COLUMN_USAGE AS kcu2')
+                .innerJoin('information_schema.TABLE_CONSTRAINTS AS tc', function () {
+                    this.on('tc.CONSTRAINT_SCHEMA', '=', 'kcu2.CONSTRAINT_SCHEMA')
+                        .andOn('tc.TABLE_NAME', '=', 'kcu2.TABLE_NAME')
+                        .andOn('tc.CONSTRAINT_NAME', '=', 'kcu2.CONSTRAINT_NAME')
+                        .andOnIn('tc.CONSTRAINT_TYPE', ["PRIMARY KEY", "UNIQUE"]);
+                })
+                .groupBy(['kcu2.TABLE_NAME', 'kcu2.CONSTRAINT_NAME'])
+                .having(this.dbConnection.raw('count(kcu2.CONSTRAINT_NAME) < 2'))
+                .as('indexes');
+
+
             const foreignKeys = await this.dbConnection.select([
-                'column_name',
-                'referenced_table_name',
-                'referenced_column_name',
+                'kcu.column_name',
+                'kcu.referenced_table_name',
+                'kcu.referenced_column_name',
+                'unique_index'
             ])
-                .from('information_schema.key_column_usage')
-                .where('table_name', table.name)
-                .whereNotNull('referenced_column_name');
+                .from('information_schema.key_column_usage as kcu')
+                .leftJoin(subQuery, function () {
+                    this.on('kcu.table_name', 'indexes.table_name')
+                        .andOn('kcu.column_name', 'indexes.column_name')
+                        .andOn('kcu.constraint_schema', 'indexes.constraint_schema');
+                })
+                .where('kcu.table_name', table.name)
+                .whereNotNull('kcu.referenced_column_name');
 
             for (let c = 0; c < table.columns.length; c++) {
                 const column = table.columns[c];
@@ -133,6 +158,7 @@ export class Analyser {
                 const match = foreignKeys.find((fk) => fk.column_name.toLowerCase() === column.name.toLowerCase());
                 if (match) {
                     column.foreignKey = { table: match.referenced_table_name, column: match.referenced_column_name };
+                    column.options.unique = match.unique_index;
                 }
                 if (customColumn) {
                     column.options = Object.assign({}, column.options, customColumn.options);
