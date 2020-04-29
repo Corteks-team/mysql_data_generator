@@ -7,20 +7,20 @@ The first step is to analyse your database to generate a `schema.json` by provid
 ````
 npm install -g @corteks/mysql-data-generator
 
-mysqldatagen -h 127.0.0.1 -u USER -p PASSWORD --db DATABASE -a
+mysqldatagen --host 127.0.0.1 --user USER --password PASSWORD --database DATABASE --analyse
 ````
 
 If you want to customize the schema, rename `schema.json` to `custom_schema.json`.
 Update the `custom_schema.json` to fit your needs and every time you will run:
 ````
-mysqldatagen -h 127.0.0.1 -u USER -p PASSWORD --db DATABASE -a
+mysqldatagen --host 127.0.0.1 --user USER --password PASSWORD --database DATABASE --analyse
 ````
 
 The `schema.json` will now take in account your modification.
 
 Next step is to fill the database with randomly generated values:
 ````
-mysqldatagen -h 127.0.0.1 -u USER -p PASSWORD --db DATABASE
+mysqldatagen --host 127.0.0.1 --user USER --password PASSWORD --database DATABASE
 ````
 
 For every tables listed in `schema.json`, the tool will:
