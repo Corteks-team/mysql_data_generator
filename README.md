@@ -5,7 +5,7 @@ or specify a list of values.
 
 The first step is to analyse your database to generate a `schema.json` by providing database credentials:
 ````
-npm install -g
+npm install -g @corteks/mysql-data-generator
 
 mysqldatagen -h 127.0.0.1 -u USER -p PASSWORD --db DATABASE -a
 ````
