@@ -74,22 +74,12 @@ async function main() {
     });
 
     if (argv.analyse) {
-        const customSchema: CustomSchema = readJSONSync('./custom_schema.json');
-
-        /*customSchema.tables.forEach((table) => {
-            if (!table.columns) return;
-            table.columns.forEach((column) => {
-                if (column.options && (column.options as any).values) {
-                    column.values = (column.options as any).values;
-                    delete (column.options as any).values;
-                    if (Object.keys(column.options).length === 0) delete column.options;
-                }
-
-            });
-        });
-        writeJSONSync('./custom_schema.json', customSchema);
-        process.exit();*/
-
+        let customSchema: CustomSchema | undefined = undefined;
+        try {
+            customSchema = readJSONSync('./custom_schema.json');
+        } catch (ex) {
+            console.warn('Unable to read ./custom_schema.json, this will not take any customization into account.');
+        }
 
         const analyser = new Analyser(
             dbConnection,
