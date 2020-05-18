@@ -109,7 +109,10 @@ export class Analyser {
             }, this.customSchema.tables?.find(t => t.name?.toLowerCase() === table.name.toLowerCase()));
             const columns: MySQLColumn[] = await this.dbConnection.select()
                 .from('information_schema.COLUMNS')
-                .where({ 'TABLE_NAME': table.name });
+                .where({
+                    'TABLE_SCHEMA': this.database,
+                    'TABLE_NAME': table.name
+                });
 
             columns
                 .filter((column: MySQLColumn) => {
