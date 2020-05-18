@@ -78,8 +78,17 @@ export class TableService {
             return;
         }
 
+        let previousRunRows: number = -1;
+
         let currentNbRows: number = await this.getLines(table);
         batch: while (currentNbRows < table.lines) {
+            if (previousRunRows === currentNbRows) {
+                console.warn(`Can't insert more rows in ${table.name}`);
+                break batch;
+            }
+            previousRunRows = currentNbRows;
+
+
             const rows = [];
             const runRows = Math.min(1000, table.lines - currentNbRows);
 
