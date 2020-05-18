@@ -93,8 +93,14 @@ async function main() {
         return;
     }
 
-    const schema: Schema = readJSONSync('./schema.json');
+    let schema: Schema | undefined = undefined;
+    try {
+        schema = readJSONSync('./schema.json');
+    } catch (ex) {
+        console.error('Unable to read from schema.json. Please run with --analyse first.');
+    }
 
+    if (!schema) return;
     const tableService = new TableService(dbConnection, schema.maxCharLength || 255, schema.values);
     for (const table of schema.tables) {
         if (table.lines > 0) {
