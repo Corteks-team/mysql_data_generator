@@ -216,7 +216,6 @@ export class TableService {
                 }
                 rows.push(row);
             }
-            //await this.dbConnection.raw('SET foreign_key_checks = 0;')
             const query = await this.dbConnection(table.name)
                 .insert(rows)
                 .toQuery()
