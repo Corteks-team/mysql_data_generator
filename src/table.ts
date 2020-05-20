@@ -6,6 +6,8 @@ export interface Table {
     name: string;
     lines: number;
     columns: Column[];
+    before?: string[];
+    after?: string[];
 }
 
 export class TableService {
@@ -64,6 +66,14 @@ export class TableService {
                 }
                 tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
             }
+        }
+    }
+
+    async before(table: Table) {
+        if (!table.before) return;
+
+        for (const query of table.before) {
+            await this.dbConnection.raw(query);
         }
     }
 
@@ -232,6 +242,14 @@ export class TableService {
             const insertResult = await this.dbConnection.raw(query);
             currentNbRows += insertResult[0].affectedRows;
             console.log(currentNbRows + ' / ' + table.lines);
+        }
+    }
+
+    async after(table: Table) {
+        if (!table.after) return;
+
+        for (const query of table.after) {
+            await this.dbConnection.raw(query);
         }
     }
 }

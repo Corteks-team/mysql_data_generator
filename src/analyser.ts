@@ -52,9 +52,15 @@ export class Analyser {
         for (let t = 0; t < tables.length; t++) {
             const table = tables[t];
             let lines;
+            let before;
+            let after;
             if (this.customSchema.tables) {
                 const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
-                if (customTable) lines = customTable.lines;
+                if (customTable) {
+                    lines = customTable.lines;
+                    before = customTable.before;
+                    after = customTable.after;
+                }
                 if (customTable && customTable.columns) {
                     for (const column of customTable.columns) {
                         if (column.foreignKey) {
@@ -66,6 +72,8 @@ export class Analyser {
             }
             if (lines === undefined) lines = (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
             table.lines = lines;
+            table.before = before;
+            table.after = after;
             if (table.referenced_table !== null) {
                 table.referenced_table = table.referenced_table.split(',');
             } else {
@@ -89,6 +97,8 @@ export class Analyser {
                     name: table.name,
                     lines: table.lines,
                     columns: [],
+                    before: table.before,
+                    after: table.after,
                 });
                 branch.pop();
                 return;

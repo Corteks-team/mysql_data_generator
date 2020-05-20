@@ -105,7 +105,9 @@ async function main() {
     for (const table of schema.tables) {
         if (table.lines > 0) {
             if (argv.reset) await tableService.empty(table);
+            await tableService.before(table);
             await tableService.fill(table);
+            await tableService.after(table);
         }
     }
 }
