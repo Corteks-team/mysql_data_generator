@@ -5,7 +5,7 @@ export interface Column {
     generator: string;
     options: {
         nullable?: boolean;
-        min: number;
+        min: number | string;
         max: number;
         unsigned?: boolean;
         autoIncrement?: boolean;

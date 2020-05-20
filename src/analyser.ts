@@ -7,12 +7,14 @@ import { Table } from './table';
 
 export interface CustomSchema {
     maxCharLength?: number;
+    minDate?: string;
     ignoredTables?: string[];
     tables?: Partial<Table>[];
     values?: { [key: string]: any[]; };
 }
 
 const DEFAULT_MAX_CHAR_LENGTH: number = 255;
+const DEFAULT_MIN_DATE: string = '01-01-1970';
 
 const dummyCustomSchema: CustomSchema = {
     maxCharLength: DEFAULT_MAX_CHAR_LENGTH,
@@ -34,7 +36,7 @@ export class Analyser {
     }
 
     public extractTables = async () => {
-        const tables: { name: string, lines: number, referenced_table: any; }[] = await this.dbConnection
+        const tables: (Table & { referenced_table: any; })[] = await this.dbConnection
             .select([
                 this.dbConnection.raw('t.TABLE_NAME AS name'),
                 this.dbConnection.raw('GROUP_CONCAT(c.REFERENCED_TABLE_NAME SEPARATOR ",") AS referenced_table'),
@@ -81,7 +83,7 @@ export class Analyser {
             }
         }
 
-        const recursive = (branch: { name: string, lines: number, referenced_table: string[]; }[]) => {
+        const recursive = (branch: (Table & { referenced_table: string[]; })[]) => {
             const table = branch[branch.length - 1];
             while (table.referenced_table.length > 0) {
                 const tableName = table.referenced_table.pop();
@@ -144,6 +146,7 @@ export class Analyser {
                 options.max = column.CHARACTER_MAXIMUM_LENGTH || column.NUMERIC_PRECISION;
                 if (column.COLUMN_TYPE.includes('unsigned')) options.unsigned = true;
                 if (column.EXTRA.includes('auto_increment')) options.autoIncrement = true;
+                if (['timestamp', 'datetime', 'date'].includes(column.DATA_TYPE) && this.customSchema.minDate) options.min = this.customSchema.minDate;
                 return {
                     name: column.COLUMN_NAME,
                     generator: column.DATA_TYPE,
@@ -205,6 +208,7 @@ export class Analyser {
     public generateJson(): Schema {
         return {
             maxCharLength: this.customSchema.maxCharLength || DEFAULT_MAX_CHAR_LENGTH,
+            minDate: this.customSchema.minDate || DEFAULT_MIN_DATE,
             tables: this.tables,
             values: this.values,
         };

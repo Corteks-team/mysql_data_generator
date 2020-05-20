@@ -201,7 +201,7 @@ export class TableService {
                         case 'char':
                         case 'binary':
                         case 'varbinary':
-                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(column.options.min, Math.min(this.maxCharLength, column.options.max)));
+                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(column.options.min as number, Math.min(this.maxCharLength, column.options.max)));
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'tinyblob':

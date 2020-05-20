@@ -13,6 +13,7 @@ process.on('unhandledRejection', (ex) => {
 
 export interface Schema {
     maxCharLength: number;
+    minDate: string;
     tables: Table[];
     values: { [key: string]: any[]; };
 }
