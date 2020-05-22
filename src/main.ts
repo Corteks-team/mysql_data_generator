@@ -1,3 +1,4 @@
+import { Option, Cli } from './decorators/yargs';
 import { readJSONSync, writeJSONSync } from 'fs-extra';
 import Knex from 'knex';
 
@@ -13,61 +14,33 @@ process.on('unhandledRejection', (ex) => {
 
 
 
-async function main() {
-    const argv = yargs.options({
-        database: {
-            alias: 'db',
-            type: 'string',
-            demandOption: true,
-            description: 'database',
-        },
-        host: {
-            alias: 'h',
-            type: 'string',
-        },
-        user: {
-            alias: 'u',
-            type: 'string',
-            demandOption: true,
-        },
-        password: {
-            alias: 'p',
-            type: 'string',
-            demandOption: true,
-        },
-        analyse: {
-            alias: 'a',
-            type: 'boolean',
-        },
-        reset: {
-            alias: 'r',
-            type: 'boolean',
-        },
-    }).argv;
+@Cli
+class Main {
+    @Option({ alias: 'db', type: 'string', demandOption: true, description: 'database', })
+    private database: string | undefined = undefined;
 
-    let host = '127.0.0.1';
-    let port = 3306;
-    if (argv.host) {
-        let portString: string;
-        [host, portString] = argv.host.split(':');
-        if (portString) port = parseInt(portString, 10);
-    }
+    @Option({ alias: 'h', type: 'string', })
+    private host: string = '127.0.0.1:3306';
+    private port: number = 3306;
 
-    dbConnection = Knex({
-        client: 'mysql',
-        connection: {
-            database: argv.database,
-            host,
-            port,
-            user: argv.user,
-            password: argv.password,
-            supportBigNumbers: true,
-        },
-    }).on('query-error', (err) => {
-        console.error(err.code, err.name);
-    });
+    @Option({ alias: 'u', type: 'string', demandOption: true, })
+    private user: string = 'root';
 
-    if (argv.analyse) {
+    @Option({ alias: 'p', type: 'string', demandOption: true, })
+    private password: string = 'root';
+
+    @Option({ alias: 'a', type: 'boolean', })
+    private analysis: boolean = false;
+
+    @Option({ alias: 'r', type: 'boolean', })
+    private reset: boolean = false;
+
+    private dbConnection: Knex | undefined = undefined;
+
+    async run() {
+        const dbConnection = this.getDatabaseConnection();
+        this.dbConnection = dbConnection;
+
         let customSchema: CustomSchema | undefined = undefined;
         try {
             customSchema = readJSONSync('./custom_schema.json');
@@ -75,40 +48,63 @@ async function main() {
             console.warn('Unable to read ./custom_schema.json, this will not take any customization into account.');
         }
 
-        const analyser = new Analyser(
-            dbConnection,
-            argv.database,
-            customSchema,
-        );
-        await analyser.extractTables();
-        await analyser.extractColumns();
-        const json = analyser.generateJson();
-        writeJSONSync('./schema.json', json, { spaces: 4 });
-        return;
+        if (this.analysis) {
+            const analyser = new Analyser(
+                dbConnection,
+                this.database!,
+                customSchema,
+            );
+            await analyser.extractTables();
+            await analyser.extractColumns();
+            const json = analyser.generateJson();
+            writeJSONSync('./schema.json', json, { spaces: 4 });
+            return;
+        };
+
+        try {
+            let schema: Schema = readJSONSync('./schema.json');
+            const tableService = new TableService(dbConnection, schema.maxCharLength || 255, schema.values);
+            for (const table of schema.tables) {
+                if (table.lines > 0) {
+                    if (this.reset) await tableService.empty(table);
+                    await tableService.before(table);
+                    await tableService.fill(table);
+                    await tableService.after(table);
+                }
+            }
+        } catch (ex) {
+            console.error('Unable to read from schema.json. Please run with --analyse first.');
+            return;
+        }
     }
 
-    let schema: Schema | undefined = undefined;
-    try {
-        schema = readJSONSync('./schema.json');
-    } catch (ex) {
-        console.error('Unable to read from schema.json. Please run with --analyse first.');
+    getDatabaseConnection(): Knex {
+        const [host, portString] = this.host.split(':');
+        if (portString) this.port = parseInt(portString, 10);
+
+        const dbConnection = Knex({
+            client: 'mysql',
+            connection: {
+                database: this.database,
+                host,
+                port: this.port,
+                user: this.user,
+                password: this.password,
+                supportBigNumbers: true,
+            },
+        }).on('query-error', (err) => {
+            console.error(err.code, err.name);
+        });
+        return dbConnection;
     }
 
-    if (!schema) return;
-    const tableService = new TableService(dbConnection, schema.maxCharLength || 255, schema.values);
-    for (const table of schema.tables) {
-        if (table.lines > 0) {
-            if (argv.reset) await tableService.empty(table);
-            await tableService.before(table);
-            await tableService.fill(table);
-            await tableService.after(table);
+    stop() {
+        if (this.dbConnection) {
+            return this.dbConnection.destroy();
         }
     }
 }
 
-main()
-    .then(() => {
-        if (dbConnection) {
-            return dbConnection.destroy();
-        }
-    });
+const main = new Main();
+main.run()
+    .finally(() => main.stop());
