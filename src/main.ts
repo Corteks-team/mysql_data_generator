@@ -45,12 +45,10 @@ class Main {
                 }
                 const analyser = new Analyser(
                     dbConnection,
-                    this.database!,
-                    customSchema,
+                    this.database!
                 );
-                await analyser.extractTables();
-                await analyser.extractColumns();
-                const json = analyser.generateJson();
+                if (customSchema) analyser.setCustomSchema(customSchema);
+                const json = await analyser.analyse();
                 writeJSONSync('./schema.json', json, { spaces: 4 });
                 return;
             };

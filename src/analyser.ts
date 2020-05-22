@@ -30,14 +30,22 @@ const dummyCustomSchema: CustomSchema = {
 
 export class Analyser {
     private tables: Table[] = [];
-    private values: { [key: string]: any[]; };
+    private values: { [key: string]: any[]; } = {};
+    private customSchema: CustomSchema = dummyCustomSchema;
 
     constructor(
         private dbConnection: Knex,
         private database: string,
-        private customSchema: CustomSchema = dummyCustomSchema,
-    ) {
-        this.values = customSchema.values || {};
+    ) { }
+
+    public setCustomSchema(customSchema: CustomSchema) {
+        this.customSchema = customSchema;
+    }
+
+    public async analyse() {
+        await this.extractTables();
+        await this.extractColumns();
+        return this.generateJson();
     }
 
     public extractTables = async () => {
@@ -115,6 +123,8 @@ export class Analyser {
         tables.forEach((table) => {
             recursive([table]);
         });
+
+        return this;
     };
 
     public extractColumns = async () => {
