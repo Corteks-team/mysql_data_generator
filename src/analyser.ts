@@ -93,36 +93,6 @@ export class Analyser {
         table.after = after;
     }
 
-    private orderTablesByForeignKeys(tables: TableWithForeignKeys[]) {
-        const recursive = (branch: TableWithForeignKeys[]) => {
-            const table = branch[branch.length - 1];
-            while (table.referencedTables.length > 0) {
-                const tableName = table.referencedTables.pop();
-                const referencedTable = tables.find((t) => {
-                    return t.name === tableName;
-                });
-                if (referencedTable) recursive(([] as any).concat(branch, referencedTable));
-            };
-
-            if (table.referencedTables.length === 0) {
-                if (this.tables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
-                this.tables.push({
-                    name: table.name,
-                    lines: table.lines,
-                    columns: [],
-                    before: table.before,
-                    after: table.after,
-                });
-                branch.pop();
-                return;
-            }
-        };
-
-        tables.forEach((table) => {
-            recursive([table]);
-        });
-    }
-
     public extractColumns = async () => {
         for (const table of this.tables) {
             const customTable: Table = Object.assign({
@@ -215,6 +185,36 @@ export class Analyser {
             }
         }
     };
+
+    private orderTablesByForeignKeys(tables: TableWithForeignKeys[]) {
+        const recursive = (branch: TableWithForeignKeys[]) => {
+            const table = branch[branch.length - 1];
+            while (table.referencedTables.length > 0) {
+                const tableName = table.referencedTables.pop();
+                const referencedTable = tables.find((t) => {
+                    return t.name === tableName;
+                });
+                if (referencedTable) recursive(([] as any).concat(branch, referencedTable));
+            };
+
+            if (table.referencedTables.length === 0) {
+                if (this.tables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
+                this.tables.push({
+                    name: table.name,
+                    lines: table.lines,
+                    columns: [],
+                    before: table.before,
+                    after: table.after,
+                });
+                branch.pop();
+                return;
+            }
+        };
+
+        tables.forEach((table) => {
+            recursive([table]);
+        });
+    }
 
     public generateJson(): Schema {
         return {
