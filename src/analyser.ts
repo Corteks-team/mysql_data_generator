@@ -1,9 +1,14 @@
 import Knex = require('knex');
 import { Column } from './column';
-import { Schema } from './main';
 import { MySQLColumn } from './mysql-column';
 import { Table } from './table';
 
+export interface Schema {
+    maxCharLength: number;
+    minDate: string;
+    tables: Table[];
+    values: { [key: string]: any[]; };
+}
 
 export interface CustomSchema {
     maxCharLength?: number;

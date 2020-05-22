@@ -1,8 +1,8 @@
 import { readJSONSync, writeJSONSync } from 'fs-extra';
 import Knex from 'knex';
-import * as yargs from 'yargs';
-import { Analyser, CustomSchema } from './analyser';
-import { Table, TableService } from './table';
+
+import { Analyser, CustomSchema, Schema } from './analyser';
+import { TableService } from './table';
 
 process.on('uncaughtException', (ex) => {
     console.error(ex);
@@ -11,14 +11,7 @@ process.on('unhandledRejection', (ex) => {
     console.error(ex);
 });
 
-export interface Schema {
-    maxCharLength: number;
-    minDate: string;
-    tables: Table[];
-    values: { [key: string]: any[]; };
-}
 
-let dbConnection: Knex | undefined = undefined;
 
 async function main() {
     const argv = yargs.options({
