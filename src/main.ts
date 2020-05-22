@@ -34,6 +34,7 @@ class Main {
     private reset: boolean = false;
 
     async run() {
+        if (!this.database) throw new Error('Please provide a valide database name');
         const dbConnection = this.getDatabaseConnection();
         try {
             if (this.analysis) {
@@ -45,7 +46,7 @@ class Main {
                 }
                 const analyser = new Analyser(
                     dbConnection,
-                    this.database!
+                    this.database,
                 );
                 if (customSchema) analyser.setCustomSchema(customSchema);
                 const json = await analyser.analyse();
