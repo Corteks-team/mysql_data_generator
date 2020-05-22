@@ -12,8 +12,6 @@ process.on('unhandledRejection', (ex) => {
     console.error(ex);
 });
 
-
-
 @Cli
 class Main {
     @Option({ alias: 'db', type: 'string', demandOption: true, description: 'database', })
@@ -35,33 +33,28 @@ class Main {
     @Option({ alias: 'r', type: 'boolean', })
     private reset: boolean = false;
 
-    private dbConnection: Knex | undefined = undefined;
-
     async run() {
         const dbConnection = this.getDatabaseConnection();
-        this.dbConnection = dbConnection;
-
-        let customSchema: CustomSchema | undefined = undefined;
         try {
-            customSchema = readJSONSync('./custom_schema.json');
-        } catch (ex) {
-            console.warn('Unable to read ./custom_schema.json, this will not take any customization into account.');
-        }
+            if (this.analysis) {
+                let customSchema: CustomSchema | undefined = undefined;
+                try {
+                    customSchema = readJSONSync('./custom_schema.json');
+                } catch (ex) {
+                    console.warn('Unable to read ./custom_schema.json, this will not take any customization into account.');
+                }
+                const analyser = new Analyser(
+                    dbConnection,
+                    this.database!,
+                    customSchema,
+                );
+                await analyser.extractTables();
+                await analyser.extractColumns();
+                const json = analyser.generateJson();
+                writeJSONSync('./schema.json', json, { spaces: 4 });
+                return;
+            };
 
-        if (this.analysis) {
-            const analyser = new Analyser(
-                dbConnection,
-                this.database!,
-                customSchema,
-            );
-            await analyser.extractTables();
-            await analyser.extractColumns();
-            const json = analyser.generateJson();
-            writeJSONSync('./schema.json', json, { spaces: 4 });
-            return;
-        };
-
-        try {
             let schema: Schema = readJSONSync('./schema.json');
             const tableService = new TableService(dbConnection, schema.maxCharLength || 255, schema.values);
             for (const table of schema.tables) {
@@ -73,8 +66,13 @@ class Main {
                 }
             }
         } catch (ex) {
-            console.error('Unable to read from schema.json. Please run with --analyse first.');
-            return;
+            if (ex.code == 'ENOENT') {
+                console.error('Unable to read from schema.json. Please run with --analyse first.');
+            } else {
+                console.error(ex);
+            }
+        } finally {
+            dbConnection.destroy();
         }
     }
 
@@ -97,14 +95,7 @@ class Main {
         });
         return dbConnection;
     }
-
-    stop() {
-        if (this.dbConnection) {
-            return this.dbConnection.destroy();
-        }
-    }
 }
 
 const main = new Main();
-main.run()
-    .finally(() => main.stop());
+main.run();
