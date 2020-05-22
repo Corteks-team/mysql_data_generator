@@ -11,6 +11,10 @@ export interface Schema {
     values: { [key: string]: any[]; };
 }
 
+interface TableWithForeignKeys extends Table {
+    referencedTablesString: string;
+    referencedTables: string[];
+}
 
 const DEFAULT_MAX_CHAR_LENGTH: number = 255;
 const DEFAULT_MIN_DATE: string = '01-01-1970';
@@ -39,11 +43,11 @@ export class Analyser {
         return this.generateJson();
     }
 
-    public extractTables = async () => {
-        const tables: (Table & { referenced_table: any; })[] = await this.dbConnection
+    private extractTables = async () => {
+        const tables: TableWithForeignKeys[] = await this.dbConnection
             .select([
                 this.dbConnection.raw('t.TABLE_NAME AS name'),
-                this.dbConnection.raw('GROUP_CONCAT(c.REFERENCED_TABLE_NAME SEPARATOR ",") AS referenced_table'),
+                this.dbConnection.raw('GROUP_CONCAT(c.REFERENCED_TABLE_NAME SEPARATOR ",") AS referencedTablesString'),
             ])
             .from('information_schema.tables as t')
             .leftJoin('information_schema.key_column_usage as c', function () {
@@ -52,52 +56,55 @@ export class Analyser {
             })
             .where('t.TABLE_SCHEMA', this.database)
             .andWhere('t.TABLE_TYPE', 'BASE TABLE')
-            .whereNotIn('t.TABLE_NAME', this.customSchema.ignoredTables || [])
+            .whereNotIn('t.TABLE_NAME', this.customSchema.ignoredTables)
             .groupBy('t.TABLE_SCHEMA', 't.TABLE_NAME')
             .orderBy(2);
-        for (let t = 0; t < tables.length; t++) {
-            const table = tables[t];
-            let lines;
-            let before;
-            let after;
-            if (this.customSchema.tables) {
-                const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
-                if (customTable) {
-                    lines = customTable.lines;
-                    before = customTable.before;
-                    after = customTable.after;
-                }
-                if (customTable && customTable.columns) {
-                    for (const column of customTable.columns) {
-                        if (column.foreignKey) {
-                            if (table.referenced_table) table.referenced_table += `,${column.foreignKey.table}`;
-                            else table.referenced_table = `${column.foreignKey.table}`;
-                        }
+
+        Promise.all(tables.map((table) => {
+            table.referencedTables = table.referencedTablesString.split(',');
+            this.customizeTable(table);
+        }));
+
+        this.orderTablesByForeignKeys(tables);
+    };
+
+    private async customizeTable(table: TableWithForeignKeys): Promise<void> {
+        let lines;
+        let before;
+        let after;
+        if (this.customSchema.tables) {
+            const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
+            if (customTable) {
+                lines = customTable.lines;
+                before = customTable.before;
+                after = customTable.after;
+            }
+            if (customTable && customTable.columns) {
+                for (const column of customTable.columns) {
+                    if (column.foreignKey) {
+                        table.referencedTables.push(column.foreignKey.table);
                     }
                 }
             }
-            if (lines === undefined) lines = (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
-            table.lines = lines;
-            table.before = before;
-            table.after = after;
-            if (table.referenced_table !== null) {
-                table.referenced_table = table.referenced_table.split(',');
-            } else {
-                table.referenced_table = [];
-            }
         }
+        if (lines === undefined) lines = (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
+        table.lines = lines;
+        table.before = before;
+        table.after = after;
+    }
 
-        const recursive = (branch: (Table & { referenced_table: string[]; })[]) => {
+    private orderTablesByForeignKeys(tables: TableWithForeignKeys[]) {
+        const recursive = (branch: TableWithForeignKeys[]) => {
             const table = branch[branch.length - 1];
-            while (table.referenced_table.length > 0) {
-                const tableName = table.referenced_table.pop();
+            while (table.referencedTables.length > 0) {
+                const tableName = table.referencedTables.pop();
                 const referencedTable = tables.find((t) => {
                     return t.name === tableName;
                 });
                 if (referencedTable) recursive(([] as any).concat(branch, referencedTable));
             };
 
-            if (table.referenced_table.length === 0) {
+            if (table.referencedTables.length === 0) {
                 if (this.tables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
                 this.tables.push({
                     name: table.name,
@@ -114,9 +121,7 @@ export class Analyser {
         tables.forEach((table) => {
             recursive([table]);
         });
-
-        return this;
-    };
+    }
 
     public extractColumns = async () => {
         for (const table of this.tables) {
