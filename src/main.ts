@@ -2,7 +2,7 @@ import { Option, Cli } from './decorators/yargs';
 import { readJSONSync, writeJSONSync } from 'fs-extra';
 import Knex from 'knex';
 
-import { Analyser, CustomSchema, Schema } from './analyser';
+import { Analyser, CustomSchema, Schema, dummyCustomSchema } from './analyser';
 import { TableService } from './table';
 
 process.on('uncaughtException', (ex) => {
@@ -38,7 +38,7 @@ class Main {
         const dbConnection = this.getDatabaseConnection();
         try {
             if (this.analysis) {
-                let customSchema: CustomSchema | undefined = undefined;
+                let customSchema: CustomSchema = dummyCustomSchema;
                 try {
                     customSchema = readJSONSync('./custom_schema.json');
                 } catch (ex) {
@@ -47,8 +47,8 @@ class Main {
                 const analyser = new Analyser(
                     dbConnection,
                     this.database,
+                    customSchema
                 );
-                if (customSchema) analyser.setCustomSchema(customSchema);
                 const json = await analyser.analyse();
                 writeJSONSync('./schema.json', json, { spaces: 4 });
                 return;

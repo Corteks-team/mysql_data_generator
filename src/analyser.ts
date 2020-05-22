@@ -6,23 +6,18 @@ import { Table } from './table';
 export interface Schema {
     maxCharLength: number;
     minDate: string;
+    ignoredTables: string[];
     tables: Table[];
     values: { [key: string]: any[]; };
 }
 
-export interface CustomSchema {
-    maxCharLength?: number;
-    minDate?: string;
-    ignoredTables?: string[];
-    tables?: Partial<Table>[];
-    values?: { [key: string]: any[]; };
-}
 
 const DEFAULT_MAX_CHAR_LENGTH: number = 255;
 const DEFAULT_MIN_DATE: string = '01-01-1970';
 
-const dummyCustomSchema: CustomSchema = {
+export const dummyCustomSchema: Schema = {
     maxCharLength: DEFAULT_MAX_CHAR_LENGTH,
+    minDate: DEFAULT_MIN_DATE,
     ignoredTables: [],
     tables: [],
     values: {}
@@ -31,16 +26,12 @@ const dummyCustomSchema: CustomSchema = {
 export class Analyser {
     private tables: Table[] = [];
     private values: { [key: string]: any[]; } = {};
-    private customSchema: CustomSchema = dummyCustomSchema;
 
     constructor(
         private dbConnection: Knex,
         private database: string,
+        private customSchema: Schema,
     ) { }
-
-    public setCustomSchema(customSchema: CustomSchema) {
-        this.customSchema = customSchema;
-    }
 
     public async analyse() {
         await this.extractTables();
@@ -161,7 +152,7 @@ export class Analyser {
                 options.max = column.CHARACTER_MAXIMUM_LENGTH || column.NUMERIC_PRECISION;
                 if (column.COLUMN_TYPE.includes('unsigned')) options.unsigned = true;
                 if (column.EXTRA.includes('auto_increment')) options.autoIncrement = true;
-                if (['timestamp', 'datetime', 'date'].includes(column.DATA_TYPE) && this.customSchema.minDate) options.min = this.customSchema.minDate;
+                if (['timestamp', 'datetime', 'date'].includes(column.DATA_TYPE)) options.min = this.customSchema.minDate;
                 return {
                     name: column.COLUMN_NAME,
                     generator: column.DATA_TYPE,
@@ -224,6 +215,7 @@ export class Analyser {
         return {
             maxCharLength: this.customSchema.maxCharLength || DEFAULT_MAX_CHAR_LENGTH,
             minDate: this.customSchema.minDate || DEFAULT_MIN_DATE,
+            ignoredTables: this.customSchema.ignoredTables,
             tables: this.tables,
             values: this.values,
         };
