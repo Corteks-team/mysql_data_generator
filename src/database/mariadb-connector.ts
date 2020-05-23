@@ -45,11 +45,12 @@ export class MariaDBConnector implements DatabaseConnector {
             .groupBy('t.TABLE_SCHEMA', 't.TABLE_NAME')
             .orderBy(2);
 
-        return Promise.all(tables.map(async (table) => {
+        for (const t in tables) {
+            const table = tables[t];
             table.referencedTables = (table.referencedTablesString || '').split(',');
-            table.lines = this.countLines(table);
-            return table;
-        }));
+            table.lines = await this.countLines(table);
+        }
+        return tables;
     }
 
     async getColumnsInformation(table: Table) {
