@@ -17,12 +17,12 @@ export class TableService {
         private values: { [key: string]: any[]; }
     ) { }
 
-    async empty(table: Table) {
+    private async empty(table: Table) {
         console.log('empty: ', table.name);
         await this.dbConnector.emptyTable(table);
     }
 
-    async getForeignKeyValues(table: Table, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
+    private async getForeignKeyValues(table: Table, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
         for (var c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
             if (column.foreignKey) {
@@ -44,7 +44,15 @@ export class TableService {
         }
     }
 
-    async before(table: Table) {
+    public async fill(table: Table, reset: boolean) {
+        if (reset) await this.empty(table);
+        console.log('fill: ', table.name);
+        await this.before(table);
+        await this.generateData(table);
+        await this.after(table);
+    }
+
+    private async before(table: Table) {
         if (!table.before) return;
 
         for (const query of table.before) {
@@ -52,10 +60,8 @@ export class TableService {
         }
     }
 
-    async fill(table: Table) {
-        console.log('fill: ', table.name);
+    private async generateData(table: Table) {
         const tableForeignKeyValues: { [key: string]: any[]; } = {};
-
         try {
             await this.getForeignKeyValues(table, tableForeignKeyValues, 0);
         } catch (ex) {
@@ -67,10 +73,6 @@ export class TableService {
 
         let currentNbRows: number = await this.dbConnector.countLines(table);
         batch: while (currentNbRows < table.lines) {
-            if (previousRunRows === currentNbRows) {
-                console.warn(`Last run didn't insert any new rows in ${table.name}`);
-                break batch;
-            }
             previousRunRows = currentNbRows;
 
             const rows = [];
@@ -214,11 +216,15 @@ export class TableService {
                 rows.push(row);
             }
             currentNbRows += await this.dbConnector.insert(table.name, rows);
+            if (previousRunRows === currentNbRows) {
+                console.warn(`Last run didn't insert any new rows in ${table.name}`);
+                break batch;
+            }
             console.log(currentNbRows + ' / ' + table.lines);
         }
     }
 
-    async after(table: Table) {
+    private async after(table: Table) {
         if (!table.after) return;
 
         for (const query of table.after) {

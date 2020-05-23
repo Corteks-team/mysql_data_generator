@@ -1,7 +1,5 @@
 import { Option, Cli } from './decorators/yargs';
 import { readJSONSync, writeJSONSync } from 'fs-extra';
-import Knex from 'knex';
-
 import { Analyser, Schema, dummyCustomSchema } from './analyser';
 import { TableService } from './table';
 import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
@@ -64,10 +62,7 @@ class Main {
             const tableService = new TableService(dbConnector, schema.maxCharLength || 255, schema.values);
             for (const table of schema.tables) {
                 if (table.lines > 0) {
-                    if (this.reset) await tableService.empty(table);
-                    await tableService.before(table);
-                    await tableService.fill(table);
-                    await tableService.after(table);
+                    await tableService.fill(table, this.reset);
                 }
             }
         } catch (ex) {
