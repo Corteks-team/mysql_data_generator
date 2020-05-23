@@ -42,8 +42,7 @@ export class Analyser {
             return table;
         }));
 
-        this.orderTablesByForeignKeys(tables);
-        return this.generateJson(tables);
+        return this.generateJson(this.orderTablesByForeignKeys(tables));
     }
 
     private async customizeTable(table: TableWithForeignKeys): Promise<void> {
@@ -117,7 +116,7 @@ export class Analyser {
     };
 
     private orderTablesByForeignKeys(tables: TableWithForeignKeys[]) {
-        let sortedTables: TableWithForeignKeys[] = [];
+        let sortedTables: Table[] = [];
         const recursive = (branch: TableWithForeignKeys[]) => {
             const table = branch[branch.length - 1];
             while (table.referencedTables.length > 0) {
@@ -130,7 +129,13 @@ export class Analyser {
 
             if (table.referencedTables.length === 0) {
                 if (sortedTables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
-                sortedTables.push(table);
+                sortedTables.push({
+                    name: table.name,
+                    lines: table.lines,
+                    columns: table.columns,
+                    before: table.before,
+                    after: table.after,
+                });
                 branch.pop();
                 return;
             }
@@ -142,7 +147,7 @@ export class Analyser {
         return sortedTables;
     }
 
-    private generateJson(tables: TableWithForeignKeys[]): Schema {
+    private generateJson(tables: Table[]): Schema {
         return {
             maxCharLength: this.customSchema.maxCharLength || DEFAULT_MAX_CHAR_LENGTH,
             minDate: this.customSchema.minDate || DEFAULT_MIN_DATE,
