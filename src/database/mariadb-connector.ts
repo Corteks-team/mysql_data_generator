@@ -46,7 +46,7 @@ export class MariaDBConnector implements DatabaseConnector {
             .orderBy(2);
 
         return Promise.all(tables.map(async (table) => {
-            table.referencedTables = table.referencedTablesString.split(',');
+            table.referencedTables = (table.referencedTablesString || '').split(',');
             table.lines = (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
             return table;
         }));
