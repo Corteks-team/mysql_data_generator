@@ -68,11 +68,10 @@ export class TableService {
         let currentNbRows: number = await this.dbConnector.countLines(table);
         batch: while (currentNbRows < table.lines) {
             if (previousRunRows === currentNbRows) {
-                console.warn(`Can't insert more rows in ${table.name}`);
+                console.warn(`Last run didn't insert any new rows in ${table.name}`);
                 break batch;
             }
             previousRunRows = currentNbRows;
-
 
             const rows = [];
             const runRows = Math.min(1000, table.lines - currentNbRows);
