@@ -1,6 +1,6 @@
-import * as Knex from 'knex';
 import { Randomizer } from './randomizer';
 import { Column } from './column';
+import { DatabaseConnector } from './database/database-connector-builder';
 
 export interface Table {
     name: string;
@@ -11,58 +11,33 @@ export interface Table {
 }
 
 export class TableService {
-    private foreignValues: Record<string, any[]> = {};
-
     constructor(
-        private dbConnection: Knex,
+        private dbConnector: DatabaseConnector,
         private maxCharLength: number,
         private values: { [key: string]: any[]; }
     ) { }
 
-    async getLines(table: Table) {
-        const nbLines = (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
-        return nbLines;
-    }
-
     async empty(table: Table) {
         console.log('empty: ', table.name);
-        await this.dbConnection.raw('SET FOREIGN_KEY_CHECKS = 0;');
-        await this.dbConnection.raw(`DELETE FROM ${table.name}`);
-        await this.dbConnection.raw(`ALTER TABLE ${table.name} AUTO_INCREMENT = 1;`);
+        await this.dbConnector.emptyTable(table);
     }
 
-    async getForeignKeyValues(table: Table, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows?: number) {
+    async getForeignKeyValues(table: Table, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
         for (var c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
             if (column.foreignKey) {
                 const foreignKey = column.foreignKey;
-                let values = [];
-                if (column.options.unique) {
-                    if (runRows) {
-                        const query = this.dbConnection(foreignKey.table)
-                            .distinct(`${foreignKey.table}.${foreignKey.column}`)
-                            .leftJoin(table.name, function () {
-                                this.on(`${table.name}.${column.name}`, `${foreignKey.table}.${foreignKey.column}`);
-                            })
-                            .whereNull(`${table.name}.${column.name}`)
-                            .limit(runRows);
-                        if (foreignKey.where) {
-                            query.andWhere(this.dbConnection.raw(foreignKey.where));
-                        }
-                        values = (await query).map(result => result[column.foreignKey!.column]);
-                        if (values.length === 0) {
-                            throw new Error(`${table.name}: Not enough unique values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
-                        }
-                    }
-                } else {
-                    const query = this.dbConnection(column.foreignKey.table).distinct(column.foreignKey.column);
-                    if (foreignKey.where) {
-                        query.andWhere(this.dbConnection.raw(foreignKey.where));
-                    }
-                    values = (await query).map(result => result[column.foreignKey!.column]);
-                    if (values.length === 0 && !column.options.nullable) {
-                        throw new Error(`${table.name}: Not enough values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
-                    }
+                let values = await this.dbConnector.getValuesForForeignKeys(
+                    table.name,
+                    column.name,
+                    column.foreignKey.table,
+                    column.foreignKey.column,
+                    runRows,
+                    column.options.unique,
+                    column.foreignKey.where,
+                );
+                if (values.length === 0 && !column.options.nullable) {
+                    throw new Error(`${table}: Not enough values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
                 }
                 tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
             }
@@ -73,7 +48,7 @@ export class TableService {
         if (!table.before) return;
 
         for (const query of table.before) {
-            await this.dbConnection.raw(query);
+            await this.dbConnector.executeRawQuery(query);
         }
     }
 
@@ -82,7 +57,7 @@ export class TableService {
         const tableForeignKeyValues: { [key: string]: any[]; } = {};
 
         try {
-            await this.getForeignKeyValues(table, tableForeignKeyValues);
+            await this.getForeignKeyValues(table, tableForeignKeyValues, 0);
         } catch (ex) {
             console.warn(ex.message);
             return;
@@ -90,7 +65,7 @@ export class TableService {
 
         let previousRunRows: number = -1;
 
-        let currentNbRows: number = await this.getLines(table);
+        let currentNbRows: number = await this.dbConnector.countLines(table);
         batch: while (currentNbRows < table.lines) {
             if (previousRunRows === currentNbRows) {
                 console.warn(`Can't insert more rows in ${table.name}`);
@@ -235,12 +210,7 @@ export class TableService {
                 }
                 rows.push(row);
             }
-            const query = await this.dbConnection(table.name)
-                .insert(rows)
-                .toQuery()
-                .replace('insert into', 'insert ignore into');
-            const insertResult = await this.dbConnection.raw(query);
-            currentNbRows += insertResult[0].affectedRows;
+            currentNbRows += await this.dbConnector.insert(table.name, rows);
             console.log(currentNbRows + ' / ' + table.lines);
         }
     }
@@ -249,7 +219,7 @@ export class TableService {
         if (!table.after) return;
 
         for (const query of table.after) {
-            await this.dbConnection.raw(query);
+            await this.dbConnector.executeRawQuery(query);
         }
     }
 }

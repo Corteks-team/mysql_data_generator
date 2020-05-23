@@ -47,7 +47,7 @@ export class MariaDBConnector implements DatabaseConnector {
 
         return Promise.all(tables.map(async (table) => {
             table.referencedTables = (table.referencedTablesString || '').split(',');
-            table.lines = (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
+            table.lines = this.countLines(table);
             return table;
         }));
     }
@@ -97,6 +97,65 @@ export class MariaDBConnector implements DatabaseConnector {
             .whereNotNull('kcu.referenced_column_name');
 
         return foreignKeys;
+    }
+
+    async countLines(table: Table) {
+        return (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
+    }
+
+    async emptyTable(table: Table) {
+        await this.dbConnection.raw('SET FOREIGN_KEY_CHECKS = 0;');
+        await this.dbConnection.raw(`DELETE FROM ${table.name}`);
+        await this.dbConnection.raw(`ALTER TABLE ${table.name} AUTO_INCREMENT = 1;`);
+    }
+
+    async getValuesForForeignKeys(
+        table: string,
+        column: string,
+        foreignTable: string,
+        foreignColumn: string,
+        limit: number,
+        unique: boolean,
+        condition: string,
+    ) {
+        let values = [];
+        if (unique) {
+            if (limit) {
+                const query = this.dbConnection(foreignTable)
+                    .distinct(`${foreignTable}.${foreignColumn}`)
+                    .leftJoin(table, function () {
+                        this.on(`${table}.${column}`, `${foreignTable}.${foreignColumn}`);
+                    })
+                    .whereNull(`${table}.${column}`)
+                    .limit(limit);
+                if (condition) {
+                    query.andWhere(this.dbConnection.raw(condition));
+                }
+                values = (await query).map(result => result[foreignColumn]);
+
+            }
+        } else {
+            const query = this.dbConnection(foreignTable).distinct(foreignColumn);
+            if (condition) {
+                query.andWhere(this.dbConnection.raw(condition));
+            }
+            values = (await query).map(result => result[foreignColumn]);
+
+        }
+        return values;
+    }
+
+    async executeRawQuery(query: string) {
+        await this.dbConnection.raw(query);
+    }
+
+    async insert(table: string, rows: any[]): Promise<number> {
+        const query = await this.dbConnection(table)
+            .insert(rows)
+            .toQuery()
+            .replace('insert into', 'insert ignore into');
+        const insertResult = await this.dbConnection.raw(query);
+        return insertResult[0].affectedRows;
     }
 
     async destroy() {
