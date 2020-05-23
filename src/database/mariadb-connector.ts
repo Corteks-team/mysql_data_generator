@@ -86,7 +86,7 @@ export class MariaDBConnector implements DatabaseConnector {
             'kcu.column_name AS column',
             'kcu.referenced_table_name AS foreignTable',
             'kcu.referenced_column_name AS foreignColumn',
-            'unique_index'
+            'unique_index AS uniqueIndex'
         ])
             .from('information_schema.key_column_usage as kcu')
             .leftJoin(subQuery, function () {

@@ -7,7 +7,7 @@ export interface ForeignKey {
     column: string,
     foreignTable: string,
     foreignColumn: string;
-    unique: boolean;
+    uniqueIndex: boolean;
 }
 
 export interface DatabaseConnector {

@@ -75,6 +75,7 @@ export class Analyser {
                 unique: false,
                 unsigned: false
             };
+            if (column.COLUMN_KEY.match(/PRI|UNI/ig)) options.unique = true;
             if (column.IS_NULLABLE === 'YES') options.nullable = true;
             options.max = column.CHARACTER_MAXIMUM_LENGTH || column.NUMERIC_PRECISION;
             if (column.COLUMN_TYPE.includes('unsigned')) options.unsigned = true;
@@ -190,7 +191,7 @@ export class Analyser {
             const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
             if (match) {
                 column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
-                column.options.unique = match.unique;
+                column.options.unique = column.options.unique || match.uniqueIndex;
             }
             if (customColumn) {
                 column.options = Object.assign({}, column.options, customColumn.options);
