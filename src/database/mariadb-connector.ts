@@ -83,9 +83,9 @@ export class MariaDBConnector implements DatabaseConnector {
 
 
         const foreignKeys = await this.dbConnection.select([
-            'kcu.column_name',
-            'kcu.referenced_table_name',
-            'kcu.referenced_column_name',
+            'kcu.column_name AS column',
+            'kcu.referenced_table_name AS foreignTable',
+            'kcu.referenced_column_name AS foreignColumn',
             'unique_index'
         ])
             .from('information_schema.key_column_usage as kcu')
