@@ -120,29 +120,19 @@ export class MariaDBConnector implements DatabaseConnector {
         condition: string,
     ) {
         let values = [];
-        if (unique) {
-            if (limit) {
-                const query = this.dbConnection(foreignTable)
-                    .distinct(`${foreignTable}.${foreignColumn}`)
-                    .leftJoin(table, function () {
-                        this.on(`${table}.${column}`, `${foreignTable}.${foreignColumn}`);
-                    })
-                    .whereNull(`${table}.${column}`)
-                    .limit(limit);
-                if (condition) {
-                    query.andWhere(this.dbConnection.raw(condition));
-                }
-                values = (await query).map(result => result[foreignColumn]);
-
-            }
-        } else {
-            const query = this.dbConnection(foreignTable).distinct(foreignColumn);
-            if (condition) {
-                query.andWhere(this.dbConnection.raw(condition));
-            }
-            values = (await query).map(result => result[foreignColumn]);
-
+        const query = this.dbConnection(foreignTable)
+            .distinct(foreignColumn)
+            .orderByRaw('RAND()')
+            .limit(limit);
+        if (condition) {
+            query.andWhere(this.dbConnection.raw(condition));
         }
+        if (unique) {
+            query.leftJoin(table, function () {
+                this.on(`${table}.${column}`, `${foreignTable}.${foreignColumn}`);
+            }).whereNull(`${table}.${column}`);
+        }
+        values = (await query).map(result => result[foreignColumn]);
         return values;
     }
 

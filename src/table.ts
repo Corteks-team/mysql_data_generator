@@ -63,12 +63,6 @@ export class TableService {
 
     private async generateData(table: Table) {
         const tableForeignKeyValues: { [key: string]: any[]; } = {};
-        try {
-            await this.getForeignKeyValues(table, tableForeignKeyValues, 0);
-        } catch (ex) {
-            console.warn(ex.message);
-            return;
-        }
 
         let previousRunRows: number = -1;
 
@@ -91,17 +85,17 @@ export class TableService {
                 for (var c = 0; c < table.columns.length; c++) {
                     const column = table.columns[c];
                     if (column.options.autoIncrement) continue;
-                    if (column.foreignKey) {
-                        const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
-                        row[column.name] = foreignKeys[Randomizer.randomInt(0, foreignKeys.length - 1)];
-                        continue;
-                    }
                     if (column.values) {
                         if (Array.isArray(column.values)) {
                             row[column.name] = column.values[Randomizer.randomInt(0, column.values.length - 1)];
                         } else {
                             row[column.name] = this.values[column.values][Randomizer.randomInt(0, this.values[column.values].length - 1)];
                         }
+                        continue;
+                    }
+                    if (column.foreignKey) {
+                        const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
+                        row[column.name] = foreignKeys[i];
                         continue;
                     }
                     switch (column.generator) {
