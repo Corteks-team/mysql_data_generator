@@ -1,6 +1,7 @@
 import { Randomizer } from './randomizer';
 import { Column } from './column';
 import { DatabaseConnector } from './database/database-connector-builder';
+import { uuid4, MersenneTwister19937 } from 'random-js';
 
 export interface Table {
     name: string;
@@ -181,8 +182,12 @@ export class TableService {
                         case 'char':
                         case 'binary':
                         case 'varbinary':
-                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(column.options.min as number, Math.min(this.maxCharLength, column.options.max)));
-                            if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
+                            if (column.options.max >= 36 && column.options.unique) {
+                                row[column.name] = uuid4(MersenneTwister19937.autoSeed());
+                            } else {
+                                row[column.name] = Randomizer.randomString(Randomizer.randomInt(column.options.min as number, Math.min(this.maxCharLength, column.options.max)));
+                                if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
+                            }
                             break;
                         case 'tinyblob':
                             row[column.name] = Randomizer.randomString(Randomizer.randomInt(0, 10));
