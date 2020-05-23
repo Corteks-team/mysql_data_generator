@@ -60,8 +60,8 @@ class Main {
                 return;
             };
 
-            /*let schema: Schema = readJSONSync('./schema.json');
-            const tableService = new TableService(dbConnection, schema.maxCharLength || 255, schema.values);
+            let schema: Schema = readJSONSync('./schema.json');
+            const tableService = new TableService(dbConnector, schema.maxCharLength || 255, schema.values);
             for (const table of schema.tables) {
                 if (table.lines > 0) {
                     if (this.reset) await tableService.empty(table);
@@ -69,7 +69,7 @@ class Main {
                     await tableService.fill(table);
                     await tableService.after(table);
                 }
-            }*/
+            }
         } catch (ex) {
             if (ex.code == 'ENOENT') {
                 console.error('Unable to read from schema.json. Please run with --analyse first.');
