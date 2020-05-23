@@ -4,7 +4,7 @@ import Knex from 'knex';
 
 import { Analyser, Schema, dummyCustomSchema } from './analyser';
 import { TableService } from './table';
-import { DatabaseConnectorBuilder, databaseEngine } from './database/DatabaseConnectorBuilder';
+import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
 
 process.on('uncaughtException', (ex) => {
     console.error(ex);

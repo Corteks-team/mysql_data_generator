@@ -1,5 +1,5 @@
 import { TableWithForeignKeys } from '../analyser';
-import { MariaDBConnector } from './MariaDBConnector';
+import { MariaDBConnector } from './mariadb-connector';
 import { MySQLColumn } from './mysql-column';
 import { Table } from '../table';
 

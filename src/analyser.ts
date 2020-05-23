@@ -1,7 +1,7 @@
 import { Column } from './column';
 import { MySQLColumn } from './database/mysql-column';
 import { Table } from './table';
-import { DatabaseConnector } from './database/DatabaseConnectorBuilder';
+import { DatabaseConnector } from './database/database-connector-builder';
 
 export interface Schema {
     maxCharLength: number;

@@ -1,5 +1,5 @@
 import { TableWithForeignKeys } from '../analyser';
-import { DatabaseConnector } from './DatabaseConnectorBuilder';
+import { DatabaseConnector } from './database-connector-builder';
 import Knex from 'knex';
 import { Table } from '../table';
 
