@@ -139,9 +139,9 @@ export class TableService {
                         case 'integer':
                         case 'bigint':
                             if (column.options.unsigned) {
-                                row[column.name] = Randomizer.randomInt(0, 2147483647);
+                                row[column.name] = Randomizer.randomInt((column.options.min !== undefined ? column.options.min as number : 0), (column.options.max !== undefined ? column.options.max as number : 2147483647));
                             } else {
-                                row[column.name] = Randomizer.randomInt(-2147483648, 2147483647);
+                                row[column.name] = Randomizer.randomInt((column.options.min !== undefined ? column.options.min as number : -2147483648), (column.options.max !== undefined ? column.options.max as number : 2147483647));
                             }
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
@@ -149,7 +149,11 @@ export class TableService {
                         case 'dec':
                         case 'float':
                         case 'double':
-                            row[column.name] = Math.random();
+                            if (column.options.unsigned) {
+                                row[column.name] = Randomizer.randomFloat((column.options.min !== undefined ? column.options.min as number : 0), (column.options.max !== undefined ? column.options.max as number : 2147483647));
+                            } else {
+                                row[column.name] = Randomizer.randomFloat((column.options.min !== undefined ? column.options.min as number : -2147483648), (column.options.max !== undefined ? column.options.max as number : 2147483647));
+                            }
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'date':

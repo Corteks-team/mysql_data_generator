@@ -1,4 +1,4 @@
-import { Column } from './column';
+import { ColumnOptions } from './column';
 import { MySQLColumn } from './database/mysql-column';
 import { Table } from './table';
 import { DatabaseConnector } from './database/database-connector-builder';
@@ -56,7 +56,7 @@ export class Analyser {
         }
     }
 
-    private extractColumns = async (table: TableWithForeignKeys) => {
+    private async extractColumns(table: TableWithForeignKeys) {
         const columns: MySQLColumn[] = await this.dbConnector.getColumnsInformation(table);
 
         columns
@@ -67,7 +67,7 @@ export class Analyser {
             });
 
         table.columns = columns.map((column: MySQLColumn) => {
-            const options: Column['options'] = {
+            const options: ColumnOptions = {
                 max: 0,
                 min: 0,
                 autoIncrement: false,
@@ -79,14 +79,102 @@ export class Analyser {
             options.max = column.CHARACTER_MAXIMUM_LENGTH || column.NUMERIC_PRECISION;
             if (column.COLUMN_TYPE.includes('unsigned')) options.unsigned = true;
             if (column.EXTRA.includes('auto_increment')) options.autoIncrement = true;
-            if (['timestamp', 'datetime', 'date'].includes(column.DATA_TYPE)) options.min = this.customSchema.minDate;
+            if (['timestamp', 'datetime', 'date'].includes(column.DATA_TYPE)) options.minDate = this.customSchema.minDate;
+            switch (column.DATA_TYPE) {
+                case 'bit':
+                    break;
+                case 'tinyint':
+                    if (options.unsigned) {
+                        options.min = 0;
+                        options.max = 255;
+                    } else {
+                        options.min = -128;
+                        options.max = 127;
+                    }
+                    break;
+                case 'bool':
+                case 'boolean':
+                    break;
+                case 'smallint':
+                    if (options.unsigned) {
+                        options.min = 0;
+                        options.max = 65535;
+                    } else {
+                        options.min = -32768;
+                        options.max = 32767;
+                    }
+                    break;
+                case 'mediumint':
+                    if (options.unsigned) {
+                        options.min = 0;
+                        options.max = 16777215;
+                    } else {
+                        options.min = -8388608;
+                        options.max = 8388607;
+                    }
+                    break;
+                case 'int':
+                case 'integer':
+                case 'bigint':
+                    if (options.unsigned) {
+                        options.min = 0;
+                        options.max = 2147483647;
+                    } else {
+                        options.min = -2147483648;
+                        options.max = 2147483647;
+                    }
+                    break;
+                case 'decimal':
+                case 'dec':
+                case 'float':
+                case 'double':
+                    if (options.unsigned) {
+                        options.min = 0;
+                        options.max = 2147483647;
+                    } else {
+                        options.min = -2147483648;
+                        options.max = 2147483647;
+                    }
+                    break;
+                case 'date':
+                case 'datetime':
+                case 'timestamp':
+                    options.minDate = '01-01-1970';
+                    options.maxDate = undefined;
+                    break;
+                case 'time':
+                    break;
+                case 'year':
+                    options.min = 1901;
+                    options.max = 2155;
+                    break;
+                case 'varchar':
+                case 'char':
+                case 'binary':
+                case 'varbinary':
+                    break;
+                case 'tinyblob':
+                    break;
+                case 'text':
+                case 'mediumtext':
+                case 'longtext':
+                    break;
+                case 'blob':
+                case 'mediumblob': // 16777215
+                case 'longblob': // 4,294,967,295
+                    break;
+                case 'set':
+                    break;
+                case 'enum':
+                    break;
+            }
             return {
                 name: column.COLUMN_NAME,
                 generator: column.DATA_TYPE,
                 options,
             };
         });
-    };
+    }
 
     private extractForeignKeys = async (table: TableWithForeignKeys) => {
         const foreignKeys = await this.dbConnector.getForeignKeys(table);
@@ -145,7 +233,7 @@ export class Analyser {
             recursive([table]);
         });
         return sortedTables;
-    }
+    };
 
     private generateJson(tables: Table[]): Schema {
         return {
