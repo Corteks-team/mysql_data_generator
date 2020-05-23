@@ -2,8 +2,9 @@ import { Option, Cli } from './decorators/yargs';
 import { readJSONSync, writeJSONSync } from 'fs-extra';
 import Knex from 'knex';
 
-import { Analyser, CustomSchema, Schema, dummyCustomSchema } from './analyser';
+import { Analyser, Schema, dummyCustomSchema } from './analyser';
 import { TableService } from './table';
+import { DatabaseConnectorBuilder, databaseEngine } from './database/DatabaseConnectorBuilder';
 
 process.on('uncaughtException', (ex) => {
     console.error(ex);
@@ -19,7 +20,6 @@ class Main {
 
     @Option({ alias: 'h', type: 'string', })
     private host: string = '127.0.0.1:3306';
-    private port: number = 3306;
 
     @Option({ alias: 'u', type: 'string', demandOption: true, })
     private user: string = 'root';
@@ -34,18 +34,25 @@ class Main {
     private reset: boolean = false;
 
     async run() {
-        if (!this.database) throw new Error('Please provide a valide database name');
-        const dbConnection = this.getDatabaseConnection();
+        if (!this.database) throw new Error('Please provide a valid database name');
+        const [host, port] = this.host.split(':');
+        const dbConnectorBuilder = new DatabaseConnectorBuilder(databaseEngine.MariaDB);
+        const dbConnector = dbConnectorBuilder
+            .setHost(host)
+            .setPort(parseInt(port, 10))
+            .setDatabase(this.database)
+            .setCredentials(this.user, this.password)
+            .build();
         try {
             if (this.analysis) {
-                let customSchema: CustomSchema = dummyCustomSchema;
+                let customSchema: Schema = dummyCustomSchema;
                 try {
                     customSchema = readJSONSync('./custom_schema.json');
                 } catch (ex) {
                     console.warn('Unable to read ./custom_schema.json, this will not take any customization into account.');
                 }
                 const analyser = new Analyser(
-                    dbConnection,
+                    dbConnector,
                     this.database,
                     customSchema
                 );
@@ -54,7 +61,7 @@ class Main {
                 return;
             };
 
-            let schema: Schema = readJSONSync('./schema.json');
+            /*let schema: Schema = readJSONSync('./schema.json');
             const tableService = new TableService(dbConnection, schema.maxCharLength || 255, schema.values);
             for (const table of schema.tables) {
                 if (table.lines > 0) {
@@ -63,7 +70,7 @@ class Main {
                     await tableService.fill(table);
                     await tableService.after(table);
                 }
-            }
+            }*/
         } catch (ex) {
             if (ex.code == 'ENOENT') {
                 console.error('Unable to read from schema.json. Please run with --analyse first.');
@@ -71,30 +78,13 @@ class Main {
                 console.error(ex);
             }
         } finally {
-            dbConnection.destroy();
+            console.log('Close database connection');
+            await dbConnector.destroy();
         }
-    }
-
-    getDatabaseConnection(): Knex {
-        const [host, portString] = this.host.split(':');
-        if (portString) this.port = parseInt(portString, 10);
-
-        const dbConnection = Knex({
-            client: 'mysql',
-            connection: {
-                database: this.database,
-                host,
-                port: this.port,
-                user: this.user,
-                password: this.password,
-                supportBigNumbers: true,
-            },
-        }).on('query-error', (err) => {
-            console.error(err.code, err.name);
-        });
-        return dbConnection;
     }
 }
 
 const main = new Main();
-main.run();
+(async () => {
+    await main.run();
+})();

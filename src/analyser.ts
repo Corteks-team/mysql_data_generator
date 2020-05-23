@@ -1,7 +1,7 @@
-import Knex = require('knex');
 import { Column } from './column';
-import { MySQLColumn } from './mysql-column';
+import { MySQLColumn } from './database/mysql-column';
 import { Table } from './table';
+import { DatabaseConnector } from './database/DatabaseConnectorBuilder';
 
 export interface Schema {
     maxCharLength: number;
@@ -11,8 +11,7 @@ export interface Schema {
     values: { [key: string]: any[]; };
 }
 
-interface TableWithForeignKeys extends Table {
-    referencedTablesString: string;
+export interface TableWithForeignKeys extends Table {
     referencedTables: string[];
 }
 
@@ -28,165 +27,104 @@ export const dummyCustomSchema: Schema = {
 };
 
 export class Analyser {
-    private tables: Table[] = [];
     private values: { [key: string]: any[]; } = {};
 
     constructor(
-        private dbConnection: Knex,
+        private dbConnector: DatabaseConnector,
         private database: string,
         private customSchema: Schema,
     ) { }
 
     public async analyse() {
-        await this.extractTables();
-        await this.extractColumns();
-        return this.generateJson();
-    }
+        let tables = await this.extractTables();
 
-    private extractTables = async () => {
-        const tables: TableWithForeignKeys[] = await this.dbConnection
-            .select([
-                this.dbConnection.raw('t.TABLE_NAME AS name'),
-                this.dbConnection.raw('GROUP_CONCAT(c.REFERENCED_TABLE_NAME SEPARATOR ",") AS referencedTablesString'),
-            ])
-            .from('information_schema.tables as t')
-            .leftJoin('information_schema.key_column_usage as c', function () {
-                this.on('c.CONSTRAINT_SCHEMA', '=', 't.TABLE_SCHEMA')
-                    .andOn('c.TABLE_NAME', '=', 't.TABLE_NAME');
-            })
-            .where('t.TABLE_SCHEMA', this.database)
-            .andWhere('t.TABLE_TYPE', 'BASE TABLE')
-            .whereNotIn('t.TABLE_NAME', this.customSchema.ignoredTables)
-            .groupBy('t.TABLE_SCHEMA', 't.TABLE_NAME')
-            .orderBy(2);
-
-        Promise.all(tables.map((table) => {
-            table.referencedTables = table.referencedTablesString.split(',');
-            this.customizeTable(table);
+        tables = await Promise.all(tables.map(async (table) => {
+            await this.customizeTable(table);
+            await this.extractColumns(table);
+            await this.extractForeignKeys(table);
+            return table;
         }));
 
         this.orderTablesByForeignKeys(tables);
+        return this.generateJson(tables);
+    }
+
+    private extractTables = async () => {
+        return await this.dbConnector.getTablesInformation(this.customSchema.ignoredTables);
     };
 
     private async customizeTable(table: TableWithForeignKeys): Promise<void> {
-        let lines;
-        let before;
-        let after;
         if (this.customSchema.tables) {
             const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
             if (customTable) {
-                lines = customTable.lines;
-                before = customTable.before;
-                after = customTable.after;
-            }
-            if (customTable && customTable.columns) {
-                for (const column of customTable.columns) {
-                    if (column.foreignKey) {
-                        table.referencedTables.push(column.foreignKey.table);
-                    }
-                }
+                table.lines = customTable.lines;
+                table.before = customTable.before;
+                table.after = customTable.after;
             }
         }
-        if (lines === undefined) lines = (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
-        table.lines = lines;
-        table.before = before;
-        table.after = after;
     }
 
-    public extractColumns = async () => {
-        for (const table of this.tables) {
-            const customTable: Table = Object.assign({
-                name: '',
-                columns: [],
-                lines: 0
-            }, this.customSchema.tables?.find(t => t.name?.toLowerCase() === table.name.toLowerCase()));
-            const columns: MySQLColumn[] = await this.dbConnection.select()
-                .from('information_schema.COLUMNS')
-                .where({
-                    'TABLE_SCHEMA': this.database,
-                    'TABLE_NAME': table.name
-                });
+    private extractColumns = async (table: TableWithForeignKeys) => {
+        const columns: MySQLColumn[] = await this.dbConnector.getColumnsInformation(table);
 
-            columns
-                .filter((column: MySQLColumn) => {
-                    return ['enum', 'set'].includes(column.DATA_TYPE || '');
-                }).forEach((column: MySQLColumn) => {
-                    column.NUMERIC_PRECISION = column.COLUMN_TYPE.match(/[enum,set]\((.*)\)$/)![1].split('\',\'').length;
-                });
-
-            table.columns = columns.map((column: MySQLColumn) => {
-                const options: Column['options'] = {
-                    max: 0,
-                    min: 0,
-                    autoIncrement: false,
-                    nullable: false,
-                    unique: false,
-                    unsigned: false
-                };
-                if (column.IS_NULLABLE === 'YES') options.nullable = true;
-                options.max = column.CHARACTER_MAXIMUM_LENGTH || column.NUMERIC_PRECISION;
-                if (column.COLUMN_TYPE.includes('unsigned')) options.unsigned = true;
-                if (column.EXTRA.includes('auto_increment')) options.autoIncrement = true;
-                if (['timestamp', 'datetime', 'date'].includes(column.DATA_TYPE)) options.min = this.customSchema.minDate;
-                return {
-                    name: column.COLUMN_NAME,
-                    generator: column.DATA_TYPE,
-                    options,
-                };
+        columns
+            .filter((column: MySQLColumn) => {
+                return ['enum', 'set'].includes(column.DATA_TYPE || '');
+            }).forEach((column: MySQLColumn) => {
+                column.NUMERIC_PRECISION = column.COLUMN_TYPE.match(/[enum,set]\((.*)\)$/)![1].split('\',\'').length;
             });
 
-            const subQuery = this.dbConnection
-                .select([
-                    'kcu2.table_name',
-                    'kcu2.column_name',
-                    'kcu2.constraint_schema',
-                    this.dbConnection.raw('1 AS unique_index')
-                ])
-                .from('information_schema.KEY_COLUMN_USAGE AS kcu2')
-                .innerJoin('information_schema.TABLE_CONSTRAINTS AS tc', function () {
-                    this.on('tc.CONSTRAINT_SCHEMA', '=', 'kcu2.CONSTRAINT_SCHEMA')
-                        .andOn('tc.TABLE_NAME', '=', 'kcu2.TABLE_NAME')
-                        .andOn('tc.CONSTRAINT_NAME', '=', 'kcu2.CONSTRAINT_NAME')
-                        .andOnIn('tc.CONSTRAINT_TYPE', ["PRIMARY KEY", "UNIQUE"]);
-                })
-                .groupBy(['kcu2.TABLE_NAME', 'kcu2.CONSTRAINT_NAME'])
-                .having(this.dbConnection.raw('count(kcu2.CONSTRAINT_NAME) < 2'))
-                .as('indexes');
+        table.columns = columns.map((column: MySQLColumn) => {
+            const options: Column['options'] = {
+                max: 0,
+                min: 0,
+                autoIncrement: false,
+                nullable: false,
+                unique: false,
+                unsigned: false
+            };
+            if (column.IS_NULLABLE === 'YES') options.nullable = true;
+            options.max = column.CHARACTER_MAXIMUM_LENGTH || column.NUMERIC_PRECISION;
+            if (column.COLUMN_TYPE.includes('unsigned')) options.unsigned = true;
+            if (column.EXTRA.includes('auto_increment')) options.autoIncrement = true;
+            if (['timestamp', 'datetime', 'date'].includes(column.DATA_TYPE)) options.min = this.customSchema.minDate;
+            return {
+                name: column.COLUMN_NAME,
+                generator: column.DATA_TYPE,
+                options,
+            };
+        });
+    };
 
+    private extractForeignKeys = async (table: TableWithForeignKeys) => {
+        const foreignKeys = await this.dbConnector.getForeignKeys(table);
 
-            const foreignKeys = await this.dbConnection.select([
-                'kcu.column_name',
-                'kcu.referenced_table_name',
-                'kcu.referenced_column_name',
-                'unique_index'
-            ])
-                .from('information_schema.key_column_usage as kcu')
-                .leftJoin(subQuery, function () {
-                    this.on('kcu.table_name', 'indexes.table_name')
-                        .andOn('kcu.column_name', 'indexes.column_name')
-                        .andOn('kcu.constraint_schema', 'indexes.constraint_schema');
-                })
-                .where('kcu.table_name', table.name)
-                .whereNotNull('kcu.referenced_column_name');
-
-            for (let c = 0; c < table.columns.length; c++) {
-                const column = table.columns[c];
-                const customColumn = customTable.columns.find(cc => cc.name.toLowerCase() === column.name.toLowerCase());
-                const match = foreignKeys.find((fk) => fk.column_name.toLowerCase() === column.name.toLowerCase());
-                if (match) {
-                    column.foreignKey = { table: match.referenced_table_name, column: match.referenced_column_name };
-                    column.options.unique = match.unique_index;
-                }
-                if (customColumn) {
-                    column.options = Object.assign({}, column.options, customColumn.options);
-                    column.foreignKey = customColumn.foreignKey;
-                    column.values = customColumn.values;
-                }
+        const customTable: Table = this.customSchema.tables.find(t => t.name.toLowerCase() === table.name.toLowerCase()) || {
+            name: '',
+            columns: [],
+            lines: 0,
+        };
+        for (let c = 0; c < table.columns.length; c++) {
+            const column = table.columns[c];
+            const customColumn = customTable.columns.find(cc => cc.name.toLowerCase() === column.name.toLowerCase());
+            const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
+            if (match) {
+                column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
+                column.options.unique = match.unique;
+            }
+            if (customColumn) {
+                column.options = Object.assign({}, column.options, customColumn.options);
+                column.foreignKey = customColumn.foreignKey;
+                column.values = customColumn.values;
+            }
+            if (column.foreignKey) {
+                table.referencedTables.push(column.foreignKey.table);
             }
         }
     };
 
     private orderTablesByForeignKeys(tables: TableWithForeignKeys[]) {
+        let sortedTables: TableWithForeignKeys[] = [];
         const recursive = (branch: TableWithForeignKeys[]) => {
             const table = branch[branch.length - 1];
             while (table.referencedTables.length > 0) {
@@ -198,14 +136,8 @@ export class Analyser {
             };
 
             if (table.referencedTables.length === 0) {
-                if (this.tables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
-                this.tables.push({
-                    name: table.name,
-                    lines: table.lines,
-                    columns: [],
-                    before: table.before,
-                    after: table.after,
-                });
+                if (sortedTables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
+                sortedTables.push(table);
                 branch.pop();
                 return;
             }
@@ -214,14 +146,15 @@ export class Analyser {
         tables.forEach((table) => {
             recursive([table]);
         });
+        return sortedTables;
     }
 
-    public generateJson(): Schema {
+    private generateJson(tables: TableWithForeignKeys[]): Schema {
         return {
             maxCharLength: this.customSchema.maxCharLength || DEFAULT_MAX_CHAR_LENGTH,
             minDate: this.customSchema.minDate || DEFAULT_MIN_DATE,
             ignoredTables: this.customSchema.ignoredTables,
-            tables: this.tables,
+            tables: tables,
             values: this.values,
         };
     }
