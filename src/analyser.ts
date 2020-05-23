@@ -27,16 +27,13 @@ export const dummyCustomSchema: Schema = {
 };
 
 export class Analyser {
-    private values: { [key: string]: any[]; } = {};
-
     constructor(
         private dbConnector: DatabaseConnector,
-        private database: string,
         private customSchema: Schema,
     ) { }
 
     public async analyse() {
-        let tables = await this.extractTables();
+        let tables = await this.dbConnector.getTablesInformation(this.customSchema.ignoredTables);
 
         tables = await Promise.all(tables.map(async (table) => {
             await this.customizeTable(table);
@@ -48,10 +45,6 @@ export class Analyser {
         this.orderTablesByForeignKeys(tables);
         return this.generateJson(tables);
     }
-
-    private extractTables = async () => {
-        return await this.dbConnector.getTablesInformation(this.customSchema.ignoredTables);
-    };
 
     private async customizeTable(table: TableWithForeignKeys): Promise<void> {
         if (this.customSchema.tables) {
@@ -155,7 +148,7 @@ export class Analyser {
             minDate: this.customSchema.minDate || DEFAULT_MIN_DATE,
             ignoredTables: this.customSchema.ignoredTables,
             tables: tables,
-            values: this.values,
+            values: this.customSchema.values,
         };
     }
 }

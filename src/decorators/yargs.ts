@@ -1,5 +1,4 @@
 import yargs from 'yargs';
-import "reflect-metadata";
 
 const metadata: { [key: string]: any; } = {};
 

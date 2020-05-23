@@ -53,7 +53,6 @@ class Main {
                 }
                 const analyser = new Analyser(
                     dbConnector,
-                    this.database,
                     customSchema
                 );
                 const json = await analyser.analyse();
