@@ -4,12 +4,12 @@ export interface Column {
     name: string;
     generator: string;
     options: {
-        nullable?: boolean;
+        nullable: boolean;
         min: number | string;
         max: number;
-        unsigned?: boolean;
-        autoIncrement?: boolean;
-        unique?: boolean;
+        unsigned: boolean;
+        autoIncrement: boolean;
+        unique: boolean;
     };
     foreignKey?: {
         table: string;
