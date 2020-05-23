@@ -139,13 +139,13 @@ export class Analyser {
                 case 'date':
                 case 'datetime':
                 case 'timestamp':
-                    options.minDate = '01-01-1970';
+                    options.minDate = this.customSchema.minDate || '01-01-1970';
                     options.maxDate = undefined;
                     break;
                 case 'time':
                     break;
                 case 'year':
-                    options.min = 1901;
+                    options.min = parseInt(this.customSchema.minDate.substring(6)) || 1901;
                     options.max = 2155;
                     break;
                 case 'varchar':
