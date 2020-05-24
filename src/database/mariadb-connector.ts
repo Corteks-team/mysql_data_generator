@@ -121,7 +121,7 @@ export class MariaDBConnector implements DatabaseConnector {
     ) {
         let values = [];
         const query = this.dbConnection(foreignTable)
-            .distinct(foreignColumn)
+            .distinct(`${foreignTable}.${foreignColumn}`)
             .orderByRaw('RAND()')
             .limit(limit);
         if (condition) {
