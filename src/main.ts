@@ -1,37 +1,30 @@
-import { Option, Cli } from './decorators/yargs';
+import { CliMainClass, CliMain, CliParameter } from '@corteks/clify';
 import { readJSONSync, writeJSONSync } from 'fs-extra';
 import { Analyser, Schema, dummyCustomSchema } from './analyser';
 import { TableService } from './table';
 import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
 
-process.on('uncaughtException', (ex) => {
-    console.error(ex);
-});
-process.on('unhandledRejection', (ex) => {
-    console.error(ex);
-});
-
-@Cli
-class Main {
-    @Option({ alias: 'db', type: 'string', demandOption: true, description: 'database', })
+@CliMain
+class Main extends CliMainClass {
+    @CliParameter({ alias: 'db', demandOption: true, description: 'database', })
     private database: string | undefined = undefined;
 
-    @Option({ alias: 'h', type: 'string', })
+    @CliParameter()
     private host: string = '127.0.0.1:3306';
 
-    @Option({ alias: 'u', type: 'string', demandOption: true, })
+    @CliParameter()
     private user: string = 'root';
 
-    @Option({ alias: 'p', type: 'string', demandOption: true, })
+    @CliParameter()
     private password: string = 'root';
 
-    @Option({ alias: 'a', type: 'boolean', })
+    @CliParameter()
     private analysis: boolean = false;
 
-    @Option({ alias: 'r', type: 'boolean', })
+    @CliParameter()
     private reset: boolean = false;
 
-    async run() {
+    async main(): Promise<number> {
         if (!this.database) throw new Error('Please provide a valid database name');
         const [host, port] = this.host.split(':');
         const dbConnectorBuilder = new DatabaseConnectorBuilder(databaseEngine.MariaDB);
@@ -55,7 +48,7 @@ class Main {
                 );
                 const json = await analyser.analyse();
                 writeJSONSync('./schema.json', json, { spaces: 4 });
-                return;
+                return 1;
             };
 
             let schema: Schema = readJSONSync('./schema.json');
@@ -75,10 +68,6 @@ class Main {
             console.log('Close database connection');
             await dbConnector.destroy();
         }
+        return 0;
     }
 }
-
-const main = new Main();
-(async () => {
-    await main.run();
-})();
