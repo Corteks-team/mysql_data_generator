@@ -104,11 +104,7 @@ export class TableService {
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'tinyint':
-                            if (column.options.unsigned) {
-                                row[column.name] = Randomizer.randomInt(0, 255);
-                            } else {
-                                row[column.name] = Randomizer.randomInt(-128, 127);
-                            }
+                            row[column.name] = Randomizer.randomInt(column.options.min, column.options.max);
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'bool':
@@ -117,40 +113,24 @@ export class TableService {
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'smallint':
-                            if (column.options.unsigned) {
-                                row[column.name] = Randomizer.randomInt(0, 65535);
-                            } else {
-                                row[column.name] = Randomizer.randomInt(-32768, 32767);
-                            }
+                            row[column.name] = Randomizer.randomInt(column.options.min, column.options.max);
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'mediumint':
-                            if (column.options.unsigned) {
-                                row[column.name] = Randomizer.randomInt(0, 16777215);
-                            } else {
-                                row[column.name] = Randomizer.randomInt(-8388608, 8388607);
-                            }
+                            row[column.name] = Randomizer.randomInt(column.options.min, column.options.max);
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'int':
                         case 'integer':
                         case 'bigint':
-                            if (column.options.unsigned) {
-                                row[column.name] = Randomizer.randomInt((column.options.min !== undefined ? column.options.min as number : 0), (column.options.max !== undefined ? column.options.max as number : 2147483647));
-                            } else {
-                                row[column.name] = Randomizer.randomInt((column.options.min !== undefined ? column.options.min as number : -2147483648), (column.options.max !== undefined ? column.options.max as number : 2147483647));
-                            }
+                            row[column.name] = Randomizer.randomInt(column.options.min, column.options.max);
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'decimal':
                         case 'dec':
                         case 'float':
                         case 'double':
-                            if (column.options.unsigned) {
-                                row[column.name] = Randomizer.randomFloat((column.options.min !== undefined ? column.options.min as number : 0), (column.options.max !== undefined ? column.options.max as number : 2147483647));
-                            } else {
-                                row[column.name] = Randomizer.randomFloat((column.options.min !== undefined ? column.options.min as number : -2147483648), (column.options.max !== undefined ? column.options.max as number : 2147483647));
-                            }
+                            row[column.name] = Randomizer.randomFloat(column.options.min, column.options.max);
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'date':
@@ -169,7 +149,7 @@ export class TableService {
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'year':
-                            row[column.name] = Randomizer.randomInt(1901, 2155);
+                            row[column.name] = Randomizer.randomInt(column.options.min, column.options.max);
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'varchar':
