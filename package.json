@@ -34,9 +34,12 @@
     },
     "devDependencies": {
         "@types/fs-extra": "^8.1.0",
+        "@types/jest": "^25.2.3",
         "@types/mysql": "^2.15.9",
         "@types/node": "^13.11.1",
         "@types/yargs": "^15.0.4",
+        "jest": "^26.0.1",
+        "ts-jest": "^26.0.0",
         "ts-node": "^8.8.2",
         "tslint": "^6.1.1",
         "typescript": "^3.8.3",
@@ -46,7 +49,8 @@
     "scripts": {
         "dev": "nodemon",
         "build": "tsc",
-        "prepublishOnly": "tsc"
+        "prepublishOnly": "tsc",
+        "test": "jest"
     },
     "description": "This is a tool to easily fill a SQL database.  \r It is able to analyse a schema and generate a `schema.json` which will be used to generate accurate data. It does its best to handle foreign keys.  \r You can provide a `custom_schema.json` to customize `schema.json` during the analyse phase. This will allow you to override datatype for a column, force the use of a foreign key\r or specify a list of values.",
     "bugs": {
