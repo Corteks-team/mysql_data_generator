@@ -28,8 +28,8 @@ export class MariaDBConnector implements DatabaseConnector {
         });
     }
 
-    async getTablesInformation(ignoredTables: string[]): Promise<TableWithForeignKeys[]> {
-        const tables = await this.dbConnection
+    async getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<TableWithForeignKeys[]> {
+        const tablesQuery = this.dbConnection
             .select([
                 this.dbConnection.raw('t.TABLE_NAME AS name'),
                 this.dbConnection.raw('GROUP_CONCAT(c.REFERENCED_TABLE_NAME SEPARATOR ",") AS referencedTablesString'),
@@ -41,9 +41,13 @@ export class MariaDBConnector implements DatabaseConnector {
             })
             .where('t.TABLE_SCHEMA', this.database)
             .andWhere('t.TABLE_TYPE', 'BASE TABLE')
-            .whereNotIn('t.TABLE_NAME', ignoredTables)
             .groupBy('t.TABLE_SCHEMA', 't.TABLE_NAME')
             .orderBy(2);
+
+        if (ignoredTables.length > 0) tablesQuery.whereNotIn('t.TABLE_NAME', ignoredTables);
+        if (tablesToFill.length > 0) tablesQuery.whereIn('t.TABLE_NAME', tablesToFill);
+
+        const tables = await tablesQuery;
 
         for (const t in tables) {
             const table = tables[t];

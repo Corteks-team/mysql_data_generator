@@ -7,6 +7,7 @@ export interface Schema {
     maxCharLength: number;
     minDate: string;
     ignoredTables: string[];
+    tablesToFill: string[];
     tables: Table[];
     values: { [key: string]: any[]; };
 }
@@ -22,6 +23,7 @@ export const dummyCustomSchema: Schema = {
     maxCharLength: DEFAULT_MAX_CHAR_LENGTH,
     minDate: DEFAULT_MIN_DATE,
     ignoredTables: [],
+    tablesToFill: [],
     tables: [],
     values: {}
 };
@@ -44,7 +46,7 @@ export class Analyser {
     }
 
     public async analyse() {
-        let tables = await this.dbConnector.getTablesInformation(this.customSchema.ignoredTables);
+        let tables = await this.dbConnector.getTablesInformation(this.customSchema.ignoredTables, this.customSchema.tablesToFill);
 
         tables = await Promise.all(tables.map(async (table) => {
             await this.customizeTable(table);
@@ -254,6 +256,7 @@ export class Analyser {
             maxCharLength: this.customSchema.maxCharLength || DEFAULT_MAX_CHAR_LENGTH,
             minDate: this.customSchema.minDate || DEFAULT_MIN_DATE,
             ignoredTables: this.customSchema.ignoredTables,
+            tablesToFill: this.customSchema.tablesToFill,
             tables: tables,
             values: this.customSchema.values,
         };
