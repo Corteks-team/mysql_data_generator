@@ -1,18 +1,10 @@
-import { ColumnOptions } from './column';
-import { MySQLColumn } from './database/mysql-column';
-import { Table } from './table';
-import { DatabaseConnector } from './database/database-connector-builder';
+import { ColumnOptions } from '../column';
+import { MySQLColumn } from '../database/mysql-column';
+import { DatabaseConnector } from '../database/database-connector-builder';
+import { Schema } from '../schema.interface';
+import { TableDescriptor } from '../table-descriptor.interface';
 
-export interface Schema {
-    maxCharLength: number;
-    minDate: string;
-    ignoredTables: string[];
-    tablesToFill: string[];
-    tables: Table[];
-    values: { [key: string]: any[]; };
-}
-
-export type TableWithForeignKeys = Table & {
+export interface TableWithForeignKeys extends TableDescriptor {
     referencedTables: string[];
 }
 
@@ -32,16 +24,16 @@ export class Analyser {
     constructor(
         private dbConnector: DatabaseConnector,
         private customSchema: Schema,
-    ) { 
+    ) {
         /** @todo: Remove deprecated warning */
-        let useDeprecatedLines = false
+        let useDeprecatedLines = false;
         customSchema.tables.forEach((table) => {
-            if(table.lines) {
+            if (table.lines) {
                 useDeprecatedLines = true;
                 table.maxLines = table.lines;
             }
-        })
-        if(useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
+        });
+        if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
         /****************/
     }
 
@@ -62,8 +54,8 @@ export class Analyser {
         if (this.customSchema.tables) {
             const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
             if (customTable) {
-                if(customTable.maxLines) table.maxLines = customTable.maxLines;
-                if(customTable.addLines) table.addLines = customTable.addLines;
+                if (customTable.maxLines) table.maxLines = customTable.maxLines;
+                if (customTable.addLines) table.addLines = customTable.addLines;
                 table.before = customTable.before;
                 table.after = customTable.after;
             }
@@ -194,7 +186,7 @@ export class Analyser {
     private extractForeignKeys = async (table: TableWithForeignKeys) => {
         const foreignKeys = await this.dbConnector.getForeignKeys(table);
 
-        const customTable: Table = Object.assign({
+        const customTable: TableDescriptor = Object.assign({
             name: '',
             columns: [],
             maxLines: 0,
@@ -219,7 +211,7 @@ export class Analyser {
     };
 
     private orderTablesByForeignKeys(tables: TableWithForeignKeys[]) {
-        let sortedTables: Table[] = [];
+        let sortedTables: TableDescriptor[] = [];
         const recursive = (branch: TableWithForeignKeys[]) => {
             const table = branch[branch.length - 1];
             while (table.referencedTables.length > 0) {
@@ -251,7 +243,7 @@ export class Analyser {
         return sortedTables;
     };
 
-    private generateJson(tables: Table[]): Schema {
+    private generateJson(tables: TableDescriptor[]): Schema {
         return {
             maxCharLength: this.customSchema.maxCharLength || DEFAULT_MAX_CHAR_LENGTH,
             minDate: this.customSchema.minDate || DEFAULT_MIN_DATE,

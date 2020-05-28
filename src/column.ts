@@ -1,4 +1,4 @@
-export type Values = string | string[];
+export type Values = string | string[] | { [key: string]: number; };
 
 export interface Column {
     name: string;

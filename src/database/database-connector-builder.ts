@@ -1,7 +1,7 @@
-import { TableWithForeignKeys } from '../analyser';
+import { TableWithForeignKeys } from '../analysis/analyser';
 import { MariaDBConnector } from './mariadb-connector';
 import { MySQLColumn } from './mysql-column';
-import { Table } from '../table';
+import { TableDescriptor } from '../table-descriptor.interface';
 
 export interface ForeignKey {
     column: string,
@@ -12,10 +12,10 @@ export interface ForeignKey {
 
 export interface DatabaseConnector {
     getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<TableWithForeignKeys[]>;
-    getColumnsInformation(table: Table): Promise<MySQLColumn[]>;
-    getForeignKeys(table: Table): Promise<ForeignKey[]>;
-    countLines(table: Table): Promise<number>;
-    emptyTable(table: Table): Promise<void>;
+    getColumnsInformation(table: TableDescriptor): Promise<MySQLColumn[]>;
+    getForeignKeys(table: TableDescriptor): Promise<ForeignKey[]>;
+    countLines(table: TableDescriptor): Promise<number>;
+    emptyTable(table: TableDescriptor): Promise<void>;
     getValuesForForeignKeys(table: string, column: string, foreignTable: string, foreignColumn: string, limit: number, unique: boolean, condition: string | undefined): Promise<any[]>;
     executeRawQuery(query: string): Promise<void>;
     insert(table: string, lines: any[]): Promise<number>;

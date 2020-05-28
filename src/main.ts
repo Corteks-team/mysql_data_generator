@@ -1,8 +1,9 @@
-import { CliMainClass, CliMain, CliParameter } from '@corteks/clify';
+import { CliMain, CliMainClass, CliParameter } from '@corteks/clify';
 import { readJSONSync, writeJSONSync } from 'fs-extra';
-import { Analyser, Schema, dummyCustomSchema } from './analyser';
-import { TableService } from './table';
+import { Analyser, dummyCustomSchema } from './analysis/analyser';
+import { Generator } from './generation/generator';
 import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
+import { Schema } from './schema.interface';
 
 @CliMain
 class Main extends CliMainClass {
@@ -52,19 +53,19 @@ class Main extends CliMainClass {
             };
 
             let schema: Schema = readJSONSync('./schema.json');
-            const tableService = new TableService(dbConnector, schema.maxCharLength || 255, schema.values);
+            const tableService = new Generator(dbConnector, schema);
             /** @todo: Remove deprecated warning */
-            let useDeprecatedLines = false
+            let useDeprecatedLines = false;
             for (const table of schema.tables) {
                 if (table.lines) {
                     useDeprecatedLines = true;
                     table.maxLines = table.lines;
                 }
-                if(table.maxLines || table.addLines) {
+                if (table.maxLines || table.addLines) {
                     await tableService.fill(table, this.reset);
                 }
             }
-            if(useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
+            if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
             /****************/
         } catch (ex) {
             if (ex.code == 'ENOENT') {

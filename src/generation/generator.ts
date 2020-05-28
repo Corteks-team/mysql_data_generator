@@ -1,13 +1,14 @@
 import { Randomizer } from './randomizer';
-import { Column } from './column';
-import { DatabaseConnector } from './database/database-connector-builder';
+import { DatabaseConnector } from '../database/database-connector-builder';
 import { uuid4, MersenneTwister19937 } from 'random-js';
+import { Schema } from '../schema.interface';
+import { TableDescriptor } from '../table-descriptor.interface';
 
 type RequireAtLeastOne<T, Keys extends keyof T = keyof T> =
     Pick<T, Exclude<keyof T, Keys>>
     & {
         [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>
-    }[Keys]
+    }[Keys];
 
 interface BaseTable {
     name: string;
@@ -22,19 +23,18 @@ interface BaseTable {
 
 export type Table = RequireAtLeastOne<BaseTable, 'maxLines' | 'addLines'>;
 
-export class TableService {
+export class Generator {
     constructor(
         private dbConnector: DatabaseConnector,
-        private maxCharLength: number,
-        private values: { [key: string]: any[]; }
+        private schema: Schema,
     ) { }
 
-    private async empty(table: Table) {
+    private async empty(table: TableDescriptor) {
         console.log('empty: ', table.name);
         await this.dbConnector.emptyTable(table);
     }
 
-    private async getForeignKeyValues(table: Table, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
+    private async getForeignKeyValues(table: TableDescriptor, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
         for (var c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
             if (column.foreignKey) {
@@ -56,15 +56,15 @@ export class TableService {
         }
     }
 
-    public async fill(table: Table, reset: boolean) {
+    public async fill(table: TableDescriptor, reset: boolean) {
         if (reset) await this.empty(table);
         console.log('fill: ', table.name);
-        await this.before(table);
+        if (this.before) await this.before(table);
         await this.generateData(table);
         await this.after(table);
     }
 
-    private async before(table: Table) {
+    private async before(table: TableDescriptor) {
         if (!table.before) return;
 
         for (const query of table.before) {
@@ -72,7 +72,7 @@ export class TableService {
         }
     }
 
-    private async generateData(table: Table) {
+    private async generateData(table: TableDescriptor) {
         const tableForeignKeyValues: { [key: string]: any[]; } = {};
 
         let previousRunRows: number = -1;
@@ -80,10 +80,10 @@ export class TableService {
         let currentNbRows: number = await this.dbConnector.countLines(table);
         let maxLines = 0;
         if (table.addLines) {
-            maxLines = currentNbRows + table.addLines
-            if (table.maxLines) maxLines = Math.min(maxLines, table.maxLines)
+            maxLines = currentNbRows + table.addLines;
+            if (table.maxLines) maxLines = Math.min(maxLines, table.maxLines);
         }
-        else if (table.maxLines) maxLines = table.maxLines
+        else if (table.maxLines) maxLines = table.maxLines;
         batch: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
@@ -105,8 +105,16 @@ export class TableService {
                     if (column.values) {
                         if (Array.isArray(column.values)) {
                             row[column.name] = column.values[Randomizer.randomInt(0, column.values.length - 1)];
+                        } else if (typeof column.values === 'string') {
+                            row[column.name] = this.schema.values[column.values][Randomizer.randomInt(0, this.schema.values[column.values].length - 1)];
                         } else {
-                            row[column.name] = this.values[column.values][Randomizer.randomInt(0, this.values[column.values].length - 1)];
+                            let valuesWithRatio: string[] = [];
+                            Object.keys(column.values).forEach((key: string) => {
+                                let arr = new Array((column.values as any)[key]);
+                                arr = arr.fill(key);
+                                valuesWithRatio = valuesWithRatio.concat(arr);
+                            });
+                            row[column.name] = valuesWithRatio[Randomizer.randomInt(0, valuesWithRatio.length - 1)];
                         }
                         continue;
                     }
@@ -176,7 +184,7 @@ export class TableService {
                             if (column.options.max >= 36 && column.options.unique) {
                                 row[column.name] = uuid4(MersenneTwister19937.autoSeed());
                             } else {
-                                row[column.name] = Randomizer.randomString(Randomizer.randomInt(column.options.min as number, Math.min(this.maxCharLength, column.options.max)));
+                                row[column.name] = Randomizer.randomString(Randomizer.randomInt(column.options.min as number, Math.min(this.schema.maxCharLength, column.options.max)));
                                 if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             }
                             break;
@@ -187,13 +195,13 @@ export class TableService {
                         case 'text':
                         case 'mediumtext':
                         case 'longtext':
-                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(0, Math.min(this.maxCharLength, column.options.max)));
+                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(0, Math.min(this.schema.maxCharLength, column.options.max)));
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'blob':
                         case 'mediumblob': // 16777215
                         case 'longblob': // 4,294,967,295
-                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(0, Math.min(this.maxCharLength, column.options.max)));
+                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(0, Math.min(this.schema.maxCharLength, column.options.max)));
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'set':
@@ -220,7 +228,7 @@ export class TableService {
         }
     }
 
-    private async after(table: Table) {
+    private async after(table: TableDescriptor) {
         if (!table.after) return;
 
         for (const query of table.after) {
