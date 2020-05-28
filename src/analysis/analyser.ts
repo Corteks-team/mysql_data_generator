@@ -3,6 +3,7 @@ import { MySQLColumn } from '../database/mysql-column';
 import { DatabaseConnector } from '../database/database-connector-builder';
 import { Schema } from '../schema.interface';
 import { TableDescriptor } from '../table-descriptor.interface';
+import { databaseEngines } from '../database-engines';
 
 export interface TableWithForeignKeys extends TableDescriptor {
     referencedTables: string[];
@@ -12,12 +13,14 @@ const DEFAULT_MAX_CHAR_LENGTH: number = 255;
 const DEFAULT_MIN_DATE: string = '01-01-1970';
 
 export const dummyCustomSchema: Schema = {
-    maxCharLength: DEFAULT_MAX_CHAR_LENGTH,
-    minDate: DEFAULT_MIN_DATE,
-    ignoredTables: [],
-    tablesToFill: [],
+    settings: {
+        engine: databaseEngines.MARIADB,
+        ignoredTables: [],
+        tablesToFill: [],
+        options: [],
+        values: {}
+    },
     tables: [],
-    values: {}
 };
 
 export class Analyser {
@@ -38,7 +41,7 @@ export class Analyser {
     }
 
     public async analyse() {
-        let tables = await this.dbConnector.getTablesInformation(this.customSchema.ignoredTables, this.customSchema.tablesToFill);
+        let tables = await this.dbConnector.getTablesInformation(this.customSchema.settings.ignoredTables, this.customSchema.settings.tablesToFill);
 
         tables = await Promise.all(tables.map(async (table) => {
             await this.customizeTable(table);
@@ -86,7 +89,6 @@ export class Analyser {
             options.max = column.CHARACTER_MAXIMUM_LENGTH || column.NUMERIC_PRECISION;
             if (column.COLUMN_TYPE.includes('unsigned')) options.unsigned = true;
             if (column.EXTRA.includes('auto_increment')) options.autoIncrement = true;
-            if (['timestamp', 'datetime', 'date'].includes(column.DATA_TYPE)) options.minDate = this.customSchema.minDate;
             switch (column.DATA_TYPE) {
                 case 'bit':
                     break;
@@ -146,13 +148,13 @@ export class Analyser {
                 case 'date':
                 case 'datetime':
                 case 'timestamp':
-                    options.minDate = this.customSchema.minDate || '01-01-1970';
+                    options.minDate = '01-01-1970';
                     options.maxDate = undefined;
                     break;
                 case 'time':
                     break;
                 case 'year':
-                    options.min = parseInt(this.customSchema.minDate.substring(6)) || 1901;
+                    options.min = 1901;
                     options.max = 2155;
                     break;
                 case 'varchar':
@@ -245,12 +247,16 @@ export class Analyser {
 
     private generateJson(tables: TableDescriptor[]): Schema {
         return {
-            maxCharLength: this.customSchema.maxCharLength || DEFAULT_MAX_CHAR_LENGTH,
-            minDate: this.customSchema.minDate || DEFAULT_MIN_DATE,
-            ignoredTables: this.customSchema.ignoredTables,
-            tablesToFill: this.customSchema.tablesToFill,
+            settings: {
+                engine: this.customSchema.settings.engine,
+                ignoredTables: this.customSchema.settings.ignoredTables,
+                tablesToFill: this.customSchema.settings.tablesToFill,
+                options: [
+
+                ],
+                values: this.customSchema.settings.values,
+            },
             tables: tables,
-            values: this.customSchema.values,
         };
     }
 }
