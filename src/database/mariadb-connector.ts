@@ -26,6 +26,10 @@ export class MariaDBConnector implements DatabaseConnector {
         }).on('query-error', (err) => {
             console.error(err.code, err.name);
         });
+        this.dbConnection.raw('SET GLOBAL FOREIGN_KEY_CHECKS = 0;')
+            .catch((err) => {
+                throw err;
+            });
     }
 
     async getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<TableWithForeignKeys[]> {
@@ -154,6 +158,7 @@ export class MariaDBConnector implements DatabaseConnector {
     }
 
     async destroy() {
+        await this.dbConnection.raw('SET GLOBAL FOREIGN_KEY_CHECKS = 1;');
         await this.dbConnection.destroy();
     }
 }
