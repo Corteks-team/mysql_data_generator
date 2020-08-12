@@ -60,7 +60,7 @@ class Main extends CliMainClass {
                     useDeprecatedLines = true;
                     table.maxLines = table.lines;
                 }
-                if(table.maxLines > 0) {
+                if(table.maxLines || table.addLines) {
                     await tableService.fill(table, this.reset);
                 }
             }

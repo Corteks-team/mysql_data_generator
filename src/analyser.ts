@@ -11,7 +11,7 @@ export interface Schema {
     values: { [key: string]: any[]; };
 }
 
-export interface TableWithForeignKeys extends Table {
+export type TableWithForeignKeys = Table & {
     referencedTables: string[];
 }
 
@@ -60,7 +60,8 @@ export class Analyser {
         if (this.customSchema.tables) {
             const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
             if (customTable) {
-                table.maxLines = customTable.maxLines;
+                if(customTable.maxLines) table.maxLines = customTable.maxLines;
+                if(customTable.addLines) table.addLines = customTable.addLines;
                 table.before = customTable.before;
                 table.after = customTable.after;
             }
@@ -232,10 +233,11 @@ export class Analyser {
                 sortedTables.push({
                     name: table.name,
                     maxLines: table.maxLines,
+                    addLines: table.addLines,
                     columns: table.columns,
                     before: table.before,
                     after: table.after,
-                });
+                } as Table);
                 branch.pop();
                 return;
             }

@@ -3,15 +3,24 @@ import { Column } from './column';
 import { DatabaseConnector } from './database/database-connector-builder';
 import { uuid4, MersenneTwister19937 } from 'random-js';
 
-export interface Table {
+type RequireAtLeastOne<T, Keys extends keyof T = keyof T> =
+    Pick<T, Exclude<keyof T, Keys>>
+    & {
+        [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>
+    }[Keys]
+
+interface BaseTable {
     name: string;
     /** @deprecated: This parameter has been renamed maxLines */
     lines?: number;
-    maxLines: number;
     columns: Column[];
     before?: string[];
     after?: string[];
+    maxLines?: number;
+    addLines?: number;
 }
+
+export type Table = RequireAtLeastOne<BaseTable, 'maxLines' | 'addLines'>;
 
 export class TableService {
     constructor(
@@ -69,11 +78,17 @@ export class TableService {
         let previousRunRows: number = -1;
 
         let currentNbRows: number = await this.dbConnector.countLines(table);
-        batch: while (currentNbRows < table.maxLines) {
+        let maxLines = 0;
+        if (table.addLines) {
+            maxLines = currentNbRows + table.addLines
+            if (table.maxLines) maxLines = Math.min(maxLines, table.maxLines)
+        }
+        else if (table.maxLines) maxLines = table.maxLines
+        batch: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
             const rows = [];
-            const runRows = Math.min(1000, table.maxLines - currentNbRows);
+            const runRows = Math.min(1000, maxLines - currentNbRows);
 
             try {
                 await this.getForeignKeyValues(table, tableForeignKeyValues, runRows);
