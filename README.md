@@ -43,7 +43,9 @@ filling process.
 * `ignoredTables: string[]` // list of table name that should not be analysed nor filled
 * `tables: Table[]` // list of tables handled by the tool
 * `Table.name: string` // table name
-* `Table.lines: number` // number of rows to insert
+* `Table.lines: number` // Deprecated in favor of maxLines
+* `Table.maxLines: number` // Maximum number of rows this table should contains
+* `Table.addLines: number` // Number of rows to be inserted on a single run. The number of lines resulting in the table will not exceed `Table.maxLines`
 * `Table.columns: Column[]` // list of columns handled by the tool
 * `Column.name: string` // column name
 * `Column.generator: string` // data type generator used for this column
