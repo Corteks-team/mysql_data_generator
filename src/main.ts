@@ -19,7 +19,7 @@ class Main extends CliMainClass {
     private password: string = 'root';
 
     @CliParameter()
-    private analysis: boolean = false;
+    private analyse: boolean = false;
 
     @CliParameter()
     private reset: boolean = false;
@@ -35,7 +35,7 @@ class Main extends CliMainClass {
             .setCredentials(this.user, this.password)
             .build();
         try {
-            if (this.analysis) {
+            if (this.analyse) {
                 let customSchema: Schema = dummyCustomSchema;
                 try {
                     customSchema = readJSONSync('./custom_schema.json');
