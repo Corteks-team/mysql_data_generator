@@ -48,7 +48,7 @@ class Main extends CliMainClass {
                 );
                 const json = await analyser.analyse();
                 writeJSONSync('./schema.json', json, { spaces: 4 });
-                return 1;
+                return 0;
             };
 
             let schema: Schema = readJSONSync('./schema.json');
