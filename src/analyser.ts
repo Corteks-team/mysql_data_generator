@@ -180,11 +180,11 @@ export class Analyser {
     private extractForeignKeys = async (table: TableWithForeignKeys) => {
         const foreignKeys = await this.dbConnector.getForeignKeys(table);
 
-        const customTable: Table = this.customSchema.tables.find(t => t.name.toLowerCase() === table.name.toLowerCase()) || {
+        const customTable: Table = Object.assign({
             name: '',
             columns: [],
             lines: 0,
-        };
+        }, this.customSchema.tables.find(t => t.name.toLowerCase() === table.name.toLowerCase()));
         for (let c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
             const customColumn = customTable.columns.find(cc => cc.name.toLowerCase() === column.name.toLowerCase());
