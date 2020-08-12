@@ -53,11 +53,19 @@ class Main extends CliMainClass {
 
             let schema: Schema = readJSONSync('./schema.json');
             const tableService = new TableService(dbConnector, schema.maxCharLength || 255, schema.values);
+            /** @todo: Remove deprecated warning */
+            let useDeprecatedLines = false
             for (const table of schema.tables) {
-                if (table.lines > 0) {
+                if (table.lines) {
+                    useDeprecatedLines = true;
+                    table.maxLines = table.lines;
+                }
+                if(table.maxLines > 0) {
                     await tableService.fill(table, this.reset);
                 }
             }
+            if(useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
+            /****************/
         } catch (ex) {
             if (ex.code == 'ENOENT') {
                 console.error('Unable to read from schema.json. Please run with --analyse first.');

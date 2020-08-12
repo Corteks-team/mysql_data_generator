@@ -30,7 +30,18 @@ export class Analyser {
     constructor(
         private dbConnector: DatabaseConnector,
         private customSchema: Schema,
-    ) { }
+    ) { 
+        /** @todo: Remove deprecated warning */
+        let useDeprecatedLines = false
+        customSchema.tables.forEach((table) => {
+            if(table.lines) {
+                useDeprecatedLines = true;
+                table.maxLines = table.lines;
+            }
+        })
+        if(useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
+        /****************/
+    }
 
     public async analyse() {
         let tables = await this.dbConnector.getTablesInformation(this.customSchema.ignoredTables);
@@ -49,7 +60,7 @@ export class Analyser {
         if (this.customSchema.tables) {
             const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
             if (customTable) {
-                table.lines = customTable.lines;
+                table.maxLines = customTable.maxLines;
                 table.before = customTable.before;
                 table.after = customTable.after;
             }
@@ -183,7 +194,7 @@ export class Analyser {
         const customTable: Table = Object.assign({
             name: '',
             columns: [],
-            lines: 0,
+            maxLines: 0,
         }, this.customSchema.tables.find(t => t.name.toLowerCase() === table.name.toLowerCase()));
         for (let c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
@@ -220,7 +231,7 @@ export class Analyser {
                 if (sortedTables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
                 sortedTables.push({
                     name: table.name,
-                    lines: table.lines,
+                    maxLines: table.maxLines,
                     columns: table.columns,
                     before: table.before,
                     after: table.after,

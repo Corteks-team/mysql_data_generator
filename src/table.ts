@@ -5,7 +5,9 @@ import { uuid4, MersenneTwister19937 } from 'random-js';
 
 export interface Table {
     name: string;
-    lines: number;
+    /** @deprecated: This parameter has been renamed maxLines */
+    lines?: number;
+    maxLines: number;
     columns: Column[];
     before?: string[];
     after?: string[];
@@ -67,11 +69,11 @@ export class TableService {
         let previousRunRows: number = -1;
 
         let currentNbRows: number = await this.dbConnector.countLines(table);
-        batch: while (currentNbRows < table.lines) {
+        batch: while (currentNbRows < table.maxLines) {
             previousRunRows = currentNbRows;
 
             const rows = [];
-            const runRows = Math.min(1000, table.lines - currentNbRows);
+            const runRows = Math.min(1000, table.maxLines - currentNbRows);
 
             try {
                 await this.getForeignKeyValues(table, tableForeignKeyValues, runRows);
@@ -199,7 +201,7 @@ export class TableService {
                 console.warn(`Last run didn't insert any new rows in ${table.name}`);
                 break batch;
             }
-            console.log(currentNbRows + ' / ' + table.lines);
+            console.log(currentNbRows + ' / ' + table.maxLines);
         }
     }
 
