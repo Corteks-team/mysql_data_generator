@@ -19,6 +19,10 @@ export interface DatabaseConnector {
     executeRawQuery(query: string): Promise<void>;
     insert(table: string, lines: any[]): Promise<number>;
     destroy(): Promise<void>;
+    backupTriggers(tables: string[]): Promise<void>;
+    cleanBackupTriggers(): void;
+    disableTriggers(table: string): Promise<void>;
+    enableTriggers(table: string): Promise<void>;
 }
 
 export enum databaseEngine {

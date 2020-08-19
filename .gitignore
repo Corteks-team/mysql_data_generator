@@ -4,3 +4,4 @@ schema.json
 dist
 lib
 coverage
+triggers.json

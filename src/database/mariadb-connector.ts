@@ -2,10 +2,14 @@ import { DatabaseConnector } from './database-connector-builder';
 import Knex from 'knex';
 import { Table } from '../table-descriptor.interface';
 import { getLogger } from 'log4js';
+import * as fs from 'fs-extra';
+import { Trigger } from './trigger';
 
 export class MariaDBConnector implements DatabaseConnector {
     private dbConnection: Knex;
+    private triggers: Trigger[] = [];
     private logger = getLogger();
+    private triggerBackupFile: string = 'triggers.json'
 
     constructor(
         ip: string,
@@ -31,6 +35,50 @@ export class MariaDBConnector implements DatabaseConnector {
             .catch((err) => {
                 throw err;
             });
+        if (fs.existsSync(this.triggerBackupFile)) {
+            this.triggers = fs.readJSONSync(this.triggerBackupFile);
+        }
+    }
+
+    public async backupTriggers(tables: string[]): Promise<void> {
+        const triggers = await this.dbConnection
+            .select()
+            .from('information_schema.TRIGGERS')
+            .where('event_object_schema', this.database)
+            .whereIn(`event_object_table`, tables);
+        this.triggers = this.triggers.concat(triggers)
+        fs.writeJSONSync(this.triggerBackupFile, this.triggers);
+    }
+
+    public cleanBackupTriggers(): void {
+        fs.unlinkSync(this.triggerBackupFile)
+    }
+
+    public async disableTriggers(table: string): Promise<void> {
+        const triggers = this.triggers.filter((trigger) => {
+            return trigger.EVENT_OBJECT_SCHEMA === this.database && trigger.EVENT_OBJECT_TABLE === table
+        })
+        const promises = triggers.map((trigger) => {
+            return this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`)
+        })
+        await Promise.all(promises)
+            .catch(err => console.warn(err.message))
+    }
+
+    public async enableTriggers(table: string): Promise<void> {
+        for (let i = 0; i < this.triggers.length; i++) {
+            const trigger = this.triggers[i]
+            if(trigger.EVENT_OBJECT_SCHEMA !== this.database || trigger.EVENT_OBJECT_TABLE !== table) continue
+            await this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`)
+            await this.dbConnection.raw(
+                `CREATE DEFINER = ${trigger.DEFINER} 
+                TRIGGER ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME} ${trigger.ACTION_TIMING} ${trigger.EVENT_MANIPULATION} 
+                ON ${trigger.EVENT_OBJECT_SCHEMA}.${trigger.EVENT_OBJECT_TABLE}
+                FOR EACH ROW
+                ${trigger.ACTION_STATEMENT}`
+                )
+            this.triggers.splice(i, 1)
+        }
     }
 
     async getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<Table[]> {
