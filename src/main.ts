@@ -15,7 +15,7 @@ class Main extends CliMainClass {
     @CliParameter({ alias: 'db', demandOption: true, description: 'database', })
     private database: string | undefined = undefined;
 
-    @CliParameter()
+    @CliParameter({ alias: 'h'})
     private host: string = '127.0.0.1:3306';
 
     @CliParameter()
