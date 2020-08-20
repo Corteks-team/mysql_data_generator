@@ -1,7 +1,7 @@
 import Customizer from '../src/analysis/customizer';
 import { Schema } from '../src/schema.interface';
 import { databaseEngines } from '../src/database-engines';
-import { TableDescriptor } from '../src/table-descriptor.interface';
+import { Table } from '../src/table-descriptor.interface';
 import { logger } from './index';
 
 let dummySchema: Schema;
@@ -26,7 +26,7 @@ describe('Customizer', () => {
             } as any
         });
         const customizer = new Customizer(dummySchema, logger);
-        const table: TableDescriptor = {
+        const table: Table = {
             name: 'table1',
             columns: [
                 {
