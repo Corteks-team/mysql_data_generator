@@ -1,7 +1,6 @@
-import { TableWithForeignKeys } from '../analysis/analyser';
 import { DatabaseConnector } from './database-connector-builder';
 import Knex from 'knex';
-import { TableDescriptor } from '../table-descriptor.interface';
+import { Table } from '../table-descriptor.interface';
 import { getLogger } from 'log4js';
 
 export class MariaDBConnector implements DatabaseConnector {
@@ -34,7 +33,7 @@ export class MariaDBConnector implements DatabaseConnector {
             });
     }
 
-    async getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<TableDescriptor[]> {
+    async getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<Table[]> {
         const tablesQuery = this.dbConnection
             .select([
                 this.dbConnection.raw('t.TABLE_NAME AS name'),
@@ -63,7 +62,7 @@ export class MariaDBConnector implements DatabaseConnector {
         return tables;
     }
 
-    async getColumnsInformation(table: TableDescriptor) {
+    async getColumnsInformation(table: Table) {
         return await this.dbConnection.select()
             .from('information_schema.COLUMNS')
             .where({
@@ -72,7 +71,7 @@ export class MariaDBConnector implements DatabaseConnector {
             });
     }
 
-    async getForeignKeys(table: TableDescriptor) {
+    async getForeignKeys(table: Table) {
         const subQuery = this.dbConnection
             .select([
                 'kcu2.table_name',
@@ -110,11 +109,11 @@ export class MariaDBConnector implements DatabaseConnector {
         return foreignKeys;
     }
 
-    async countLines(table: TableDescriptor) {
+    async countLines(table: Table) {
         return (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
     }
 
-    async emptyTable(table: TableDescriptor) {
+    async emptyTable(table: Table) {
         await this.dbConnection.raw('SET FOREIGN_KEY_CHECKS = 0;');
         await this.dbConnection.raw(`DELETE FROM ${table.name}`);
         await this.dbConnection.raw(`ALTER TABLE ${table.name} AUTO_INCREMENT = 1;`);

@@ -1,4 +1,4 @@
-import { TableDescriptor } from './table-descriptor.interface';
+import { Table } from './table-descriptor.interface';
 import { databaseEngines } from './database-engines';
 import { ColumnOptions } from './column';
 
@@ -15,6 +15,6 @@ export interface Schema {
             }
         >;
     };
-    tables: TableDescriptor[];
+    tables: Table[];
 }
 

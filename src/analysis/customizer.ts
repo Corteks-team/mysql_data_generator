@@ -1,5 +1,5 @@
 import { Schema } from '../schema.interface';
-import { TableDescriptor } from '../table-descriptor.interface';
+import { Table } from '../table-descriptor.interface';
 import { Logger } from 'log4js';
 
 export default class Customizer {
@@ -8,7 +8,7 @@ export default class Customizer {
         private logger: Logger
     ) { }
 
-    public customizeTable(table: TableDescriptor): void {
+    public customizeTable(table: Table): void {
         const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
         if (customTable) {
             table.lines = customTable.lines;
