@@ -3,3 +3,4 @@ custom_schema.json
 schema.json
 dist
 lib
+coverage
