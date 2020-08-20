@@ -240,9 +240,7 @@ export class Analyser {
                 engine: this.customSchema.settings.engine,
                 ignoredTables: this.customSchema.settings.ignoredTables,
                 tablesToFill: this.customSchema.settings.tablesToFill,
-                options: [
-
-                ],
+                options: this.customSchema.settings.options,
                 values: this.customSchema.settings.values,
             },
             tables: tables,
