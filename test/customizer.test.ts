@@ -45,15 +45,15 @@ describe('Customizer', () => {
     it('overrides table options', async () => {
         dummySchema.tables = [{
             name: 'table1',
-            lines: 100,
+            maxLines: 100,
         } as any];
         const customizer = new Customizer(dummySchema, logger);
-        const table: TableDescriptor = {
+        const table: Table = {
             name: 'table1',
-            lines: 0,
+            maxLines: 0,
             columns: []
         } as any;
         customizer.customizeTable(table);
-        expect(table.lines).toBe(100);
+        expect(table.maxLines).toBe(100);
     });
 });

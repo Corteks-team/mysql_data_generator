@@ -11,7 +11,8 @@ export default class Customizer {
     public customizeTable(table: Table): void {
         const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
         if (customTable) {
-            table.lines = customTable.lines;
+            table.maxLines = customTable.maxLines;
+            table.addLines = customTable.addLines;
             table.before = customTable.before;
             table.after = customTable.after;
         }
