@@ -109,7 +109,7 @@ export class Generator {
                         if (Array.isArray(column.values)) {
                             row[column.name] = column.values[Randomizer.randomInt(0, column.values.length - 1)];
                         } else if (typeof column.values === 'string') {
-                            row[column.name] = this.schema.values[column.values][Randomizer.randomInt(0, this.schema.values[column.values].length - 1)];
+                            row[column.name] = this.schema.settings.values[column.values][Randomizer.randomInt(0, this.schema.settings.values[column.values].length - 1)];
                         } else {
                             let valuesWithRatio: string[] = [];
                             Object.keys(column.values).forEach((key: string) => {
@@ -187,7 +187,7 @@ export class Generator {
                             if (column.options.max >= 36 && column.options.unique) {
                                 row[column.name] = uuid4(MersenneTwister19937.autoSeed());
                             } else {
-                                row[column.name] = Randomizer.randomString(Randomizer.randomInt(column.options.min as number, Math.min(this.schema.maxCharLength, column.options.max)));
+                                row[column.name] = Randomizer.randomString(Randomizer.randomInt(column.options.min as number, column.options.max));
                                 if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             }
                             break;
@@ -198,13 +198,13 @@ export class Generator {
                         case 'text':
                         case 'mediumtext':
                         case 'longtext':
-                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(0, Math.min(this.schema.maxCharLength, column.options.max)));
+                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(0, column.options.max));
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'blob':
                         case 'mediumblob': // 16777215
                         case 'longblob': // 4,294,967,295
-                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(0, Math.min(this.schema.maxCharLength, column.options.max)));
+                            row[column.name] = Randomizer.randomString(Randomizer.randomInt(0, column.options.max));
                             if (column.options.nullable && Math.random() <= 0.1) row[column.name] = null;
                             break;
                         case 'set':

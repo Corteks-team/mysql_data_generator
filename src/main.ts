@@ -5,6 +5,7 @@ import { Analyser, dummyCustomSchema } from './analysis/analyser';
 import { Generator } from './generation/generator';
 import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
 import { Schema } from './schema.interface';
+import Customizer from './analysis/customizer';
 
 const logger = getLogger();
 logger.level = "debug";
@@ -47,9 +48,12 @@ class Main extends CliMainClass {
                 } catch (ex) {
                     logger.warn('Unable to read ./custom_schema.json, this will not take any customization into account.');
                 }
+                const customizer = new Customizer(customSchema, logger);
                 const analyser = new Analyser(
                     dbConnector,
-                    customSchema
+                    customSchema,
+                    customizer,
+                    logger
                 );
                 const json = await analyser.analyse();
                 writeJSONSync('./schema.json', json, { spaces: 4 });

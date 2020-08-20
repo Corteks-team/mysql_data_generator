@@ -34,7 +34,7 @@ export class MariaDBConnector implements DatabaseConnector {
             });
     }
 
-    async getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<TableWithForeignKeys[]> {
+    async getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<TableDescriptor[]> {
         const tablesQuery = this.dbConnection
             .select([
                 this.dbConnection.raw('t.TABLE_NAME AS name'),

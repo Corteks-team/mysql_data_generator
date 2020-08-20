@@ -4,14 +4,12 @@ import { DatabaseConnector } from '../database/database-connector-builder';
 import { Schema } from '../schema.interface';
 import { TableDescriptor } from '../table-descriptor.interface';
 import { databaseEngines } from '../database-engines';
+import Customizer from './customizer';
 import { Logger } from 'log4js';
 
 export interface TableWithForeignKeys extends TableDescriptor {
     referencedTables: string[];
 }
-
-const DEFAULT_MAX_CHAR_LENGTH: number = 255;
-const DEFAULT_MIN_DATE: string = '01-01-1970';
 
 export const dummyCustomSchema: Schema = {
     settings: {
@@ -25,9 +23,12 @@ export const dummyCustomSchema: Schema = {
 };
 
 export class Analyser {
+
+
     constructor(
         private dbConnector: DatabaseConnector,
         private customSchema: Schema,
+        private customizer: Customizer,
         private logger: Logger
     ) {
         /** @todo: Remove deprecated warning */
@@ -46,25 +47,13 @@ export class Analyser {
         let tables = await this.dbConnector.getTablesInformation(this.customSchema.settings.ignoredTables, this.customSchema.settings.tablesToFill);
 
         tables = await Promise.all(tables.map(async (table) => {
-            await this.customizeTable(table);
             await this.extractColumns(table);
+            this.customizer.customizeTable(table);
             await this.extractForeignKeys(table);
             return table;
         }));
 
         return this.generateJson(this.orderTablesByForeignKeys(tables));
-    }
-
-    private async customizeTable(table: TableWithForeignKeys): Promise<void> {
-        if (this.customSchema.tables) {
-            const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
-            if (customTable) {
-                if (customTable.maxLines) table.maxLines = customTable.maxLines;
-                if (customTable.addLines) table.addLines = customTable.addLines;
-                table.before = customTable.before;
-                table.after = customTable.after;
-            }
-        }
     }
 
     private async extractColumns(table: TableWithForeignKeys) {
@@ -198,12 +187,12 @@ export class Analyser {
         }, this.customSchema.tables.find(t => t.name.toLowerCase() === table.name.toLowerCase()));
         for (let c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
-            const customColumn = customTable.columns.find(cc => cc.name.toLowerCase() === column.name.toLowerCase());
             const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
             if (match) {
                 column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
                 column.options.unique = column.options.unique || match.uniqueIndex;
             }
+            const customColumn = customTable?.columns.find(cc => cc.name.toLowerCase() === column.name.toLowerCase());
             if (customColumn) {
                 column.options = Object.assign({}, column.options, customColumn.options);
                 column.foreignKey = customColumn.foreignKey;
@@ -236,7 +225,8 @@ export class Analyser {
                     columns: table.columns,
                     before: table.before,
                     after: table.after,
-                } as Table);
+                    referencedTables: []
+                });
                 branch.pop();
                 return;
             }
