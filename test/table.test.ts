@@ -2,66 +2,66 @@ import { Generator } from '../src/generation/generator';
 import { TestConnector } from './test-connector';
 import { Schema } from '../src/schema.interface';
 import { TableDescriptor } from '../src/table-descriptor.interface';
+import { databaseEngines } from '../src/database-engines';
+import { logger } from './index';
 
 let testConnector: TestConnector;
+let testTableDescriptor: TableDescriptor;
+let testSchema: Schema;
 describe('Table', () => {
     beforeEach(() => {
         testConnector = new TestConnector();
-    });
-    it('reset flag', async () => {
-        const schema: Schema = {
-            ignoredTables: [],
-            tablesToFill: [],
-            maxCharLength: 0,
-            minDate: '',
-            tables: [],
-            values: {}
-        };
-        const tableService = new Generator(testConnector, schema);
-        const table: TableDescriptor = {
+        testTableDescriptor = {
             columns: [],
             lines: 0,
-            name: 'test_table'
+            name: '',
+            after: [],
+            before: [],
+            referencedTables: []
         };
+        testSchema = {
+            settings: {
+                ignoredTables: [],
+                tablesToFill: [],
+                engine: databaseEngines.MARIADB,
+                options: [],
+                values: {}
+            },
+            tables: [],
+        };
+    });
+    it('reset flag', async () => {
+        const tableService = new Generator(testConnector, testSchema, logger);
+        testTableDescriptor.lines = 100;
+        testTableDescriptor.name = 'test_table';
 
-        await tableService.fill(table, false);
+        await tableService.fill(testTableDescriptor, false);
         expect(testConnector.emptyTable).not.toHaveBeenCalled();
 
-        await tableService.fill(table, true);
+        await tableService.fill(testTableDescriptor, true);
         expect(testConnector.emptyTable).toHaveBeenCalledTimes(1);
     });
     it('values without ratio', async () => {
-        const schema: Schema = {
-            ignoredTables: [],
-            tablesToFill: [],
-            maxCharLength: 0,
-            minDate: '',
-            tables: [],
-            values: {}
-        };
-        const tableService = new Generator(testConnector, schema);
-        const table: TableDescriptor = {
-            columns: [{
-                name: 'column_with_values',
-                values: [
-                    'val1',
-                    'val2'
-                ],
-                generator: 'char',
-                options: {
-                    max: 16,
-                    autoIncrement: false,
-                    min: 0,
-                    unique: false,
-                    nullable: false,
-                    unsigned: false,
-                }
-            }],
-            lines: 100,
-            name: 'test_table'
-        };
+        const tableService = new Generator(testConnector, testSchema, logger);
+        testTableDescriptor.lines = 100;
+        testTableDescriptor.columns = [{
+            name: 'column_with_values',
+            values: [
+                'val1',
+                'val2'
+            ],
+            generator: 'char',
+            options: {
+                max: 16,
+                autoIncrement: false,
+                min: 0,
+                unique: false,
+                nullable: false,
+                unsigned: false,
+            }
+        }];
 
-        await tableService.fill(table, false);
+        await tableService.fill(testTableDescriptor, false);
 
         const generatedRows = testConnector.insert.mock.calls[0][1];
         const val1Occurences = generatedRows.some((row: any) => row.column_with_values === 'val1');
@@ -70,37 +70,27 @@ describe('Table', () => {
         expect(val2Occurences).toBeTruthy();
     });
     it('values with ratio', async () => {
-        const schema: Schema = {
-            ignoredTables: [],
-            tablesToFill: [],
-            maxCharLength: 0,
-            minDate: '',
-            tables: [],
-            values: {}
-        };
-        const tableService = new Generator(testConnector, schema);
-        const table: TableDescriptor = {
-            columns: [{
-                name: 'column_with_values',
-                values: {
-                    val1: 10,
-                    val2: 90
-                },
-                generator: 'char',
-                options: {
-                    max: 16,
-                    autoIncrement: false,
-                    min: 0,
-                    unique: false,
-                    nullable: false,
-                    unsigned: false,
-                }
-            }],
-            lines: 100,
-            name: 'test_table'
-        };
+        const tableService = new Generator(testConnector, testSchema, logger);
+        testTableDescriptor.name = 'test_table';
+        testTableDescriptor.lines = 100;
+        testTableDescriptor.columns = [{
+            name: 'column_with_values',
+            values: {
+                val1: 10,
+                val2: 90
+            },
+            generator: 'char',
+            options: {
+                max: 16,
+                autoIncrement: false,
+                min: 0,
+                unique: false,
+                nullable: false,
+                unsigned: false,
+            }
+        }];
 
-        await tableService.fill(table, false);
+        await tableService.fill(testTableDescriptor, false);
 
         const generatedRows = testConnector.insert.mock.calls[0][1];
         const val1Occurences = generatedRows.filter((row: any) => row.column_with_values === 'val1');
