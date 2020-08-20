@@ -27,7 +27,7 @@ export class MariaDBConnector implements DatabaseConnector {
         }).on('query-error', (err) => {
             this.logger.error(err.code, err.name);
         });
-        this.dbConnection.raw('SET GLOBAL FOREIGN_KEY_CHECKS = 0;')
+        this.dbConnection.raw('SET GLOBAL foreign_key_checks = OFF;')
             .catch((err) => {
                 throw err;
             });
@@ -159,7 +159,7 @@ export class MariaDBConnector implements DatabaseConnector {
     }
 
     async destroy() {
-        await this.dbConnection.raw('SET GLOBAL FOREIGN_KEY_CHECKS = 1;');
+        await this.dbConnection.raw('SET GLOBAL foreign_key_checks = ON;');
         await this.dbConnection.destroy();
     }
 }
