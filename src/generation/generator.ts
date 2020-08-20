@@ -3,6 +3,7 @@ import { DatabaseConnector } from '../database/database-connector-builder';
 import { uuid4, MersenneTwister19937 } from 'random-js';
 import { Schema } from '../schema.interface';
 import { TableDescriptor } from '../table-descriptor.interface';
+import { Logger } from 'log4js';
 
 type RequireAtLeastOne<T, Keys extends keyof T = keyof T> =
     Pick<T, Exclude<keyof T, Keys>>
@@ -27,10 +28,11 @@ export class Generator {
     constructor(
         private dbConnector: DatabaseConnector,
         private schema: Schema,
+        private logger: Logger
     ) { }
 
     private async empty(table: TableDescriptor) {
-        console.log('empty: ', table.name);
+        this.logger.info('empty: ', table.name);
         await this.dbConnector.emptyTable(table);
     }
 
@@ -58,7 +60,7 @@ export class Generator {
 
     public async fill(table: TableDescriptor, reset: boolean) {
         if (reset) await this.empty(table);
-        console.log('fill: ', table.name);
+        this.logger.info('fill: ', table.name);
         if (this.before) await this.before(table);
         await this.generateData(table);
         await this.after(table);
@@ -84,6 +86,7 @@ export class Generator {
             if (table.maxLines) maxLines = Math.min(maxLines, table.maxLines);
         }
         else if (table.maxLines) maxLines = table.maxLines;
+        this.logger.info(currentNbRows);
         batch: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
@@ -93,7 +96,7 @@ export class Generator {
             try {
                 await this.getForeignKeyValues(table, tableForeignKeyValues, runRows);
             } catch (ex) {
-                console.warn(ex.message);
+                this.logger.warn(ex.message);
                 break batch;
             }
 
@@ -221,10 +224,10 @@ export class Generator {
             }
             currentNbRows += await this.dbConnector.insert(table.name, rows);
             if (previousRunRows === currentNbRows) {
-                console.warn(`Last run didn't insert any new rows in ${table.name}`);
+                this.logger.warn(`Last run didn't insert any new rows in ${table.name}`);
                 break batch;
             }
-            console.log(currentNbRows + ' / ' + table.maxLines);
+            this.logger.info(currentNbRows + ' / ' + table.maxLines);
         }
     }
 

@@ -1,9 +1,13 @@
+import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter } from '@corteks/clify';
 import { readJSONSync, writeJSONSync } from 'fs-extra';
 import { Analyser, dummyCustomSchema } from './analysis/analyser';
 import { Generator } from './generation/generator';
 import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
 import { Schema } from './schema.interface';
+
+const logger = getLogger();
+logger.level = "debug";
 
 @CliMain
 class Main extends CliMainClass {
@@ -41,7 +45,7 @@ class Main extends CliMainClass {
                 try {
                     customSchema = readJSONSync('./custom_schema.json');
                 } catch (ex) {
-                    console.warn('Unable to read ./custom_schema.json, this will not take any customization into account.');
+                    logger.warn('Unable to read ./custom_schema.json, this will not take any customization into account.');
                 }
                 const analyser = new Analyser(
                     dbConnector,
@@ -53,7 +57,7 @@ class Main extends CliMainClass {
             };
 
             let schema: Schema = readJSONSync('./schema.json');
-            const tableService = new Generator(dbConnector, schema);
+            const tableService = new Generator(dbConnector, schema, logger);
             /** @todo: Remove deprecated warning */
             let useDeprecatedLines = false;
             for (const table of schema.tables) {
@@ -69,12 +73,12 @@ class Main extends CliMainClass {
             /****************/
         } catch (ex) {
             if (ex.code == 'ENOENT') {
-                console.error('Unable to read from schema.json. Please run with --analyse first.');
+                logger.error('Unable to read from schema.json. Please run with --analyse first.');
             } else {
-                console.error(ex);
+                logger.error(ex);
             }
         } finally {
-            console.log('Close database connection');
+            logger.info('Close database connection');
             await dbConnector.destroy();
         }
         return 0;

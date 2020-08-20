@@ -2,9 +2,11 @@ import { TableWithForeignKeys } from '../analysis/analyser';
 import { DatabaseConnector } from './database-connector-builder';
 import Knex from 'knex';
 import { TableDescriptor } from '../table-descriptor.interface';
+import { getLogger } from 'log4js';
 
 export class MariaDBConnector implements DatabaseConnector {
     private dbConnection: Knex;
+    private logger = getLogger();
 
     constructor(
         ip: string,
@@ -24,7 +26,7 @@ export class MariaDBConnector implements DatabaseConnector {
                 supportBigNumbers: true,
             },
         }).on('query-error', (err) => {
-            console.error(err.code, err.name);
+            this.logger.error(err.code, err.name);
         });
         this.dbConnection.raw('SET GLOBAL FOREIGN_KEY_CHECKS = 0;')
             .catch((err) => {

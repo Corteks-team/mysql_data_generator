@@ -4,6 +4,7 @@ import { DatabaseConnector } from '../database/database-connector-builder';
 import { Schema } from '../schema.interface';
 import { TableDescriptor } from '../table-descriptor.interface';
 import { databaseEngines } from '../database-engines';
+import { Logger } from 'log4js';
 
 export interface TableWithForeignKeys extends TableDescriptor {
     referencedTables: string[];
@@ -27,6 +28,7 @@ export class Analyser {
     constructor(
         private dbConnector: DatabaseConnector,
         private customSchema: Schema,
+        private logger: Logger
     ) {
         /** @todo: Remove deprecated warning */
         let useDeprecatedLines = false;
@@ -66,6 +68,7 @@ export class Analyser {
     }
 
     private async extractColumns(table: TableWithForeignKeys) {
+        this.logger.info(table);
         const columns: MySQLColumn[] = await this.dbConnector.getColumnsInformation(table);
 
         columns
