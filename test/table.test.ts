@@ -13,7 +13,7 @@ describe('Table', () => {
         testConnector = new TestConnector();
         testTableDescriptor = {
             columns: [],
-            lines: 0,
+            maxLines: 0,
             name: '',
             after: [],
             before: [],
@@ -43,7 +43,7 @@ describe('Table', () => {
     });
     it('values without ratio', async () => {
         const tableService = new Generator(testConnector, testSchema, logger);
-        testTableDescriptor.lines = 100;
+        testTableDescriptor.maxLines = 100;
         testTableDescriptor.columns = [{
             name: 'column_with_values',
             values: [
@@ -72,7 +72,7 @@ describe('Table', () => {
     it('values with ratio', async () => {
         const tableService = new Generator(testConnector, testSchema, logger);
         testTableDescriptor.name = 'test_table';
-        testTableDescriptor.lines = 100;
+        testTableDescriptor.maxLines = 100;
         testTableDescriptor.columns = [{
             name: 'column_with_values',
             values: {
