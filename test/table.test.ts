@@ -1,12 +1,12 @@
 import { Generator } from '../src/generation/generator';
 import { TestConnector } from './test-connector';
 import { Schema } from '../src/schema.interface';
-import { TableDescriptor } from '../src/table-descriptor.interface';
+import { Table } from '../src/table-descriptor.interface';
 import { databaseEngines } from '../src/database-engines';
 import { logger } from './index';
 
 let testConnector: TestConnector;
-let testTableDescriptor: TableDescriptor;
+let testTableDescriptor: Table;
 let testSchema: Schema;
 describe('Table', () => {
     beforeEach(() => {

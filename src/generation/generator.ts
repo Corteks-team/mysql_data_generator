@@ -2,27 +2,8 @@ import { Randomizer } from './randomizer';
 import { DatabaseConnector } from '../database/database-connector-builder';
 import { uuid4, MersenneTwister19937 } from 'random-js';
 import { Schema } from '../schema.interface';
-import { TableDescriptor } from '../table-descriptor.interface';
+import { Table } from '../table-descriptor.interface';
 import { Logger } from 'log4js';
-
-type RequireAtLeastOne<T, Keys extends keyof T = keyof T> =
-    Pick<T, Exclude<keyof T, Keys>>
-    & {
-        [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>
-    }[Keys];
-
-interface BaseTable {
-    name: string;
-    /** @deprecated: This parameter has been renamed maxLines */
-    lines?: number;
-    columns: Column[];
-    before?: string[];
-    after?: string[];
-    maxLines?: number;
-    addLines?: number;
-}
-
-export type Table = RequireAtLeastOne<BaseTable, 'maxLines' | 'addLines'>;
 
 export class Generator {
     constructor(
@@ -31,12 +12,12 @@ export class Generator {
         private logger: Logger
     ) { }
 
-    private async empty(table: TableDescriptor) {
+    private async empty(table: Table) {
         this.logger.info('empty: ', table.name);
         await this.dbConnector.emptyTable(table);
     }
 
-    private async getForeignKeyValues(table: TableDescriptor, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
+    private async getForeignKeyValues(table: Table, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
         for (var c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
             if (column.foreignKey) {
@@ -58,7 +39,7 @@ export class Generator {
         }
     }
 
-    public async fill(table: TableDescriptor, reset: boolean) {
+    public async fill(table: Table, reset: boolean) {
         if (reset) await this.empty(table);
         this.logger.info('fill: ', table.name);
         if (this.before) await this.before(table);
@@ -66,7 +47,7 @@ export class Generator {
         await this.after(table);
     }
 
-    private async before(table: TableDescriptor) {
+    private async before(table: Table) {
         if (!table.before) return;
 
         for (const query of table.before) {
@@ -74,7 +55,7 @@ export class Generator {
         }
     }
 
-    private async generateData(table: TableDescriptor) {
+    private async generateData(table: Table) {
         const tableForeignKeyValues: { [key: string]: any[]; } = {};
 
         let previousRunRows: number = -1;
@@ -231,7 +212,7 @@ export class Generator {
         }
     }
 
-    private async after(table: TableDescriptor) {
+    private async after(table: Table) {
         if (!table.after) return;
 
         for (const query of table.after) {

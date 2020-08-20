@@ -3,7 +3,7 @@ import { TestConnector } from './test-connector';
 import { Schema } from '../src/schema.interface';
 import { databaseEngines } from '../src/database-engines';
 import Customizer from '../src/analysis/customizer';
-import { TableDescriptor } from '../src/table-descriptor.interface';
+import { Table } from '../src/table-descriptor.interface';
 import { logger } from './index';
 let testConnector: TestConnector;
 let dummySchema: Schema;
@@ -22,7 +22,7 @@ describe('Analyser', () => {
             tables: [],
         };
         testCustomizer = new Customizer(dummySchema, logger);
-        jest.spyOn(testCustomizer, 'customizeTable').mockImplementation((table: TableDescriptor) => table);
+        jest.spyOn(testCustomizer, 'customizeTable').mockImplementation((table: Table) => table);
     });
     it('analyse all tables if nothing specified', async () => {
         const analyser = new Analyser(testConnector, dummySchema, testCustomizer, logger);

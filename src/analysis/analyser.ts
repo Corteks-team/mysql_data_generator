@@ -2,14 +2,10 @@ import { ColumnOptions } from '../column';
 import { MySQLColumn } from '../database/mysql-column';
 import { DatabaseConnector } from '../database/database-connector-builder';
 import { Schema } from '../schema.interface';
-import { TableDescriptor } from '../table-descriptor.interface';
+import { Table } from '../table-descriptor.interface';
 import { databaseEngines } from '../database-engines';
 import Customizer from './customizer';
 import { Logger } from 'log4js';
-
-export interface TableWithForeignKeys extends TableDescriptor {
-    referencedTables: string[];
-}
 
 export const dummyCustomSchema: Schema = {
     settings: {
@@ -56,7 +52,7 @@ export class Analyser {
         return this.generateJson(this.orderTablesByForeignKeys(tables));
     }
 
-    private async extractColumns(table: TableWithForeignKeys) {
+    private async extractColumns(table: Table) {
         this.logger.info(table);
         const columns: MySQLColumn[] = await this.dbConnector.getColumnsInformation(table);
 
@@ -177,10 +173,10 @@ export class Analyser {
         });
     }
 
-    private extractForeignKeys = async (table: TableWithForeignKeys) => {
+    private extractForeignKeys = async (table: Table) => {
         const foreignKeys = await this.dbConnector.getForeignKeys(table);
 
-        const customTable: TableDescriptor = Object.assign({
+        const customTable: Table = Object.assign({
             name: '',
             columns: [],
             maxLines: 0,
@@ -204,9 +200,9 @@ export class Analyser {
         }
     };
 
-    private orderTablesByForeignKeys(tables: TableWithForeignKeys[]) {
-        let sortedTables: TableDescriptor[] = [];
-        const recursive = (branch: TableWithForeignKeys[]) => {
+    private orderTablesByForeignKeys(tables: Table[]) {
+        let sortedTables: Table[] = [];
+        const recursive = (branch: Table[]) => {
             const table = branch[branch.length - 1];
             while (table.referencedTables.length > 0) {
                 const tableName = table.referencedTables.pop();
@@ -226,7 +222,7 @@ export class Analyser {
                     before: table.before,
                     after: table.after,
                     referencedTables: []
-                });
+                } as Table);
                 branch.pop();
                 return;
             }
@@ -238,7 +234,7 @@ export class Analyser {
         return sortedTables;
     };
 
-    private generateJson(tables: TableDescriptor[]): Schema {
+    private generateJson(tables: Table[]): Schema {
         return {
             settings: {
                 engine: this.customSchema.settings.engine,
