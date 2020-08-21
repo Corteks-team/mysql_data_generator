@@ -24,6 +24,20 @@ describe('Analyser', () => {
         testCustomizer = new Customizer(dummySchema, logger);
         jest.spyOn(testCustomizer, 'customizeTable').mockImplementation((table: Table) => table);
     });
+    it('handle deprecated parameter lines', async () => {
+        dummySchema.tables = [{
+            name: 'table1',
+            lines: 100,
+            addLines: 0,
+            columns: [],
+            before: undefined,
+            after: undefined,
+            referencedTables: []
+        }];
+        const analyser = new Analyser(testConnector, dummySchema, testCustomizer, logger);
+
+        expect(dummySchema.tables[0].maxLines).toEqual(100);
+    });
     it('analyse all tables if nothing specified', async () => {
         const analyser = new Analyser(testConnector, dummySchema, testCustomizer, logger);
 
