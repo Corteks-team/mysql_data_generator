@@ -19,8 +19,6 @@ export const dummyCustomSchema: Schema = {
 };
 
 export class Analyser {
-
-
     constructor(
         private dbConnector: DatabaseConnector,
         private customSchema: Schema,
