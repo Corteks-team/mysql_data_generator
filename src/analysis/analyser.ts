@@ -33,7 +33,7 @@ export class Analyser {
                 table.maxLines = table.lines;
             }
         });
-        if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
+        if (useDeprecatedLines) logger.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
         /****************/
     }
 
