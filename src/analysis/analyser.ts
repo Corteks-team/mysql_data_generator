@@ -53,7 +53,7 @@ export class Analyser {
     }
 
     private async extractColumns(table: Table) {
-        this.logger.info(table);
+        this.logger.info(table.name);
         const columns: MySQLColumn[] = await this.dbConnector.getColumnsInformation(table);
 
         columns
