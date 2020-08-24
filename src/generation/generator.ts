@@ -39,7 +39,7 @@ export class Generator {
         }
     }
 
-    public async fill(table: Table, reset: boolean) {
+    public async fill(table: Table, reset: boolean = false) {
         if (reset) await this.empty(table);
         this.logger.info('fill: ', table.name);
         await this.before(table);
