@@ -39,7 +39,6 @@ export class Analyser {
 
     public async analyse() {
         let tables = await this.dbConnector.getTablesInformation(this.customSchema.settings.ignoredTables, this.customSchema.settings.tablesToFill);
-
         tables = await Promise.all(tables.map(async (table) => {
             await this.extractColumns(table);
             this.customizer.customizeTable(table);
@@ -53,7 +52,6 @@ export class Analyser {
     private async extractColumns(table: Table) {
         this.logger.info(table.name);
         const columns: MySQLColumn[] = await this.dbConnector.getColumnsInformation(table);
-
         columns
             .filter((column: MySQLColumn) => {
                 return ['enum', 'set'].includes(column.DATA_TYPE || '');
@@ -70,22 +68,13 @@ export class Analyser {
                 unique: false,
                 unsigned: false
             };
-            if (column.COLUMN_KEY.match(/PRI|UNI/ig)) options.unique = true;
+            if (column.COLUMN_KEY && column.COLUMN_KEY.match(/PRI|UNI/ig)) options.unique = true;
             if (column.IS_NULLABLE === 'YES') options.nullable = true;
             options.max = column.CHARACTER_MAXIMUM_LENGTH || column.NUMERIC_PRECISION;
-            if (column.COLUMN_TYPE.includes('unsigned')) options.unsigned = true;
-            if (column.EXTRA.includes('auto_increment')) options.autoIncrement = true;
+            if (column.COLUMN_TYPE && column.COLUMN_TYPE.includes('unsigned')) options.unsigned = true;
+            if (column.EXTRA && column.EXTRA.includes('auto_increment')) options.autoIncrement = true;
             switch (column.DATA_TYPE) {
                 case 'bit':
-                    break;
-                case 'tinyint':
-                    if (options.unsigned) {
-                        options.min = 0;
-                        options.max = 255;
-                    } else {
-                        options.min = -128;
-                        options.max = 127;
-                    }
                     break;
                 case 'bool':
                 case 'boolean':
@@ -106,6 +95,15 @@ export class Analyser {
                     } else {
                         options.min = -8388608;
                         options.max = 8388607;
+                    }
+                    break;
+                case 'tinyint':
+                    if (options.unsigned) {
+                        options.min = 0;
+                        options.max = 255;
+                    } else {
+                        options.min = -128;
+                        options.max = 127;
                     }
                     break;
                 case 'int':
@@ -147,19 +145,14 @@ export class Analyser {
                 case 'char':
                 case 'binary':
                 case 'varbinary':
-                    break;
                 case 'tinyblob':
-                    break;
                 case 'text':
                 case 'mediumtext':
                 case 'longtext':
-                    break;
                 case 'blob':
                 case 'mediumblob': // 16777215
                 case 'longblob': // 4,294,967,295
-                    break;
                 case 'set':
-                    break;
                 case 'enum':
                     break;
             }
@@ -173,7 +166,6 @@ export class Analyser {
 
     private extractForeignKeys = async (table: Table) => {
         const foreignKeys = await this.dbConnector.getForeignKeys(table);
-
         const customTable: Table = Object.assign({
             name: '',
             columns: [],
@@ -186,11 +178,11 @@ export class Analyser {
                 column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
                 column.options.unique = column.options.unique || match.uniqueIndex;
             }
-            const customColumn = customTable?.columns.find(cc => cc.name.toLowerCase() === column.name.toLowerCase());
+            const customColumn = customTable.columns.find(cc => cc.name.toLowerCase() === column.name.toLowerCase());
             if (customColumn) {
                 column.options = Object.assign({}, column.options, customColumn.options);
-                column.foreignKey = customColumn.foreignKey;
-                column.values = customColumn.values;
+                if (customColumn.foreignKey) column.foreignKey = customColumn.foreignKey;
+                if (customColumn.values) column.values = customColumn.values;
             }
             if (column.foreignKey) {
                 table.referencedTables.push(column.foreignKey.table);
@@ -210,20 +202,18 @@ export class Analyser {
                 if (referencedTable) recursive(([] as any).concat(branch, referencedTable));
             };
 
-            if (table.referencedTables.length === 0) {
-                if (sortedTables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
-                sortedTables.push({
-                    name: table.name,
-                    maxLines: table.maxLines,
-                    addLines: table.addLines,
-                    columns: table.columns,
-                    before: table.before,
-                    after: table.after,
-                    referencedTables: []
-                } as Table);
-                branch.pop();
-                return;
-            }
+            if (sortedTables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
+            sortedTables.push({
+                name: table.name,
+                maxLines: table.maxLines,
+                addLines: table.addLines,
+                columns: table.columns,
+                before: table.before,
+                after: table.after,
+                referencedTables: []
+            } as Table);
+            branch.pop();
+            return;
         };
 
         tables.forEach((table) => {
