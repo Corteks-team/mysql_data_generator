@@ -42,7 +42,7 @@ export class Generator {
     public async fill(table: Table, reset: boolean) {
         if (reset) await this.empty(table);
         this.logger.info('fill: ', table.name);
-        if (this.before) await this.before(table);
+        await this.before(table);
         await this.generateData(table);
         await this.after(table);
     }
