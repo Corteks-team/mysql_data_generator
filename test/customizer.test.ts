@@ -3,7 +3,6 @@ import { Schema } from '../src/schema.interface';
 import { databaseEngines } from '../src/database-engines';
 import { Table } from '../src/table-descriptor.interface';
 import { logger } from './index';
-import { options } from 'yargs';
 
 let dummySchema: Schema;
 describe('Customizer', () => {
