@@ -17,11 +17,11 @@ export default class Customizer {
             table.after = customTable.after;
         }
         table.columns.forEach((column) => {
-            const customColumn = customTable?.columns.find(c => c.name?.toLowerCase() === column.name.toLowerCase());
-            if (customColumn?.foreignKey) column.foreignKey = customColumn?.foreignKey;
-            if (customColumn?.values) column.values = customColumn?.values;
+            const customColumn = customTable?.columns.find(c => c.name.toLowerCase() === column.name.toLowerCase());
+            if (customColumn?.foreignKey) column.foreignKey = customColumn.foreignKey;
+            if (customColumn?.values) column.values = customColumn.values;
             const globalSetting = this.customSchema.settings.options.find(o => o.dataTypes.includes(column.generator));
-            column.options = Object.assign(column.options, customColumn?.options, globalSetting?.options);
+            column.options = Object.assign({}, column.options, customColumn?.options, globalSetting?.options);
         });
     }
 }

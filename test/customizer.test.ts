@@ -3,6 +3,7 @@ import { Schema } from '../src/schema.interface';
 import { databaseEngines } from '../src/database-engines';
 import { Table } from '../src/table-descriptor.interface';
 import { logger } from './index';
+import { options } from 'yargs';
 
 let dummySchema: Schema;
 describe('Customizer', () => {
@@ -55,5 +56,46 @@ describe('Customizer', () => {
         } as any;
         customizer.customizeTable(table);
         expect(table.maxLines).toBe(100);
+    });
+    it('handle missing custom table', async () => {
+        const customizer = new Customizer(dummySchema, logger);
+        const table: Table = {
+            name: 'table1',
+            maxLines: 0,
+            columns: [{ name: 'test' }]
+        } as any;
+        customizer.customizeTable(table);
+        expect(table.maxLines).toBe(0);
+    });
+    it('overrides column options', async () => {
+        dummySchema.tables = [{
+            name: 'table1',
+            maxLines: 100,
+            columns: [
+                {
+                    name: 'col1',
+                    options: {
+                        max: 100
+                    },
+                    foreignKey: [],
+                    values: []
+                }
+            ]
+        } as any];
+        const customizer = new Customizer(dummySchema, logger);
+        const table: Table = {
+            name: 'table1',
+            maxLines: 0,
+            columns: [
+                {
+                    name: 'col1',
+                    options: {
+                        max: 0
+                    }
+                }
+            ]
+        } as any;
+        customizer.customizeTable(table);
+        expect(table.columns[0].options.max).toBe(100);
     });
 });
