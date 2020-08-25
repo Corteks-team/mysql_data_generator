@@ -62,6 +62,7 @@ class Main extends CliMainClass {
 
             let schema: Schema = readJSONSync('./schema.json');
             const tableService = new Generator(dbConnector, schema, logger);
+            await dbConnector.backupTriggers(schema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name))
             /** @todo: Remove deprecated warning */
             let useDeprecatedLines = false;
             for (const table of schema.tables) {
@@ -70,11 +71,12 @@ class Main extends CliMainClass {
                     table.maxLines = table.lines;
                 }
                 if (table.maxLines || table.addLines) {
-                    await tableService.fill(table, this.reset);
+                    await tableService.fill(table, this.reset, schema.settings.disableTriggers);
                 }
             }
             if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
             /****************/
+            dbConnector.cleanBackupTriggers()
         } catch (ex) {
             if (ex.code == 'ENOENT') {
                 logger.error('Unable to read from schema.json. Please run with --analyse first.');

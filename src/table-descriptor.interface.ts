@@ -16,6 +16,7 @@ interface BaseTable {
     maxLines?: number;
     addLines?: number;
     referencedTables: string[];
+    disableTriggers: boolean;
 }
 
 export type Table = RequireAtLeastOne<BaseTable, 'maxLines' | 'addLines'>;

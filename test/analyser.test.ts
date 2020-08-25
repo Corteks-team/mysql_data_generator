@@ -16,6 +16,7 @@ describe('Analyser', () => {
         dummySchema = {
             settings: {
                 engine: databaseEngines.MARIADB,
+                disableTriggers: false,
                 ignoredTables: [],
                 tablesToFill: [],
                 options: [],
@@ -29,6 +30,7 @@ describe('Analyser', () => {
     it('handle deprecated parameter lines', async () => {
         dummySchema.tables = [{
             name: 'table1',
+            disableTriggers: false,
             lines: 100,
             addLines: 0,
             columns: [],
@@ -123,6 +125,7 @@ describe('Analyser', () => {
         dummySchema = {
             settings: {
                 engine: databaseEngines.MARIADB,
+                disableTriggers: false,
                 ignoredTables: [],
                 options: [],
                 tablesToFill: [],

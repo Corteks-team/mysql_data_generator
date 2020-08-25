@@ -10,6 +10,7 @@ import { Logger } from 'log4js';
 export const dummyCustomSchema: Schema = {
     settings: {
         engine: databaseEngines.MARIADB,
+        disableTriggers: false,
         ignoredTables: [],
         tablesToFill: [],
         options: [],
@@ -205,6 +206,7 @@ export class Analyser {
             if (sortedTables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
             sortedTables.push({
                 name: table.name,
+                disableTriggers: table.disableTriggers,
                 maxLines: table.maxLines,
                 addLines: table.addLines,
                 columns: table.columns,
@@ -226,6 +228,7 @@ export class Analyser {
         return {
             settings: {
                 engine: this.customSchema.settings.engine,
+                disableTriggers: !!this.customSchema.settings.disableTriggers,
                 ignoredTables: this.customSchema.settings.ignoredTables,
                 tablesToFill: this.customSchema.settings.tablesToFill,
                 options: this.customSchema.settings.options,

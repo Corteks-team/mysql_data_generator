@@ -13,6 +13,7 @@ describe('Generator', () => {
         dummySchema = {
             settings: {
                 engine: databaseEngines.MARIADB,
+                disableTriggers: false,
                 ignoredTables: [],
                 tablesToFill: [],
                 options: [],

@@ -5,6 +5,7 @@ import { ColumnOptions } from './column';
 export interface Schema {
     settings: {
         engine: databaseEngines;
+        disableTriggers: boolean;
         ignoredTables: string[];
         tablesToFill: string[];
         values: { [key: string]: any[]; };

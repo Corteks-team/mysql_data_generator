@@ -13,6 +13,7 @@ describe('Table', () => {
         testConnector = new TestConnector();
         testTableDescriptor = {
             columns: [],
+            disableTriggers: false,
             maxLines: 0,
             name: '',
             after: [],
@@ -22,6 +23,7 @@ describe('Table', () => {
         testSchema = {
             settings: {
                 ignoredTables: [],
+                disableTriggers: false,
                 tablesToFill: [],
                 engine: databaseEngines.MARIADB,
                 options: [],

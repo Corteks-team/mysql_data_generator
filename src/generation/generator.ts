@@ -39,12 +39,15 @@ export class Generator {
         }
     }
 
-    public async fill(table: Table, reset: boolean = false) {
+    public async fill(table: Table, reset: boolean = false, globalDisableTriggers: boolean = false) {
         if (reset) await this.empty(table);
         this.logger.info('fill: ', table.name);
+        let handleTriggers = table.disableTriggers || (table.disableTriggers === undefined && globalDisableTriggers)
+        if(handleTriggers) await this.dbConnector.disableTriggers(table.name);
         await this.before(table);
         await this.generateData(table);
         await this.after(table);
+        if(handleTriggers) await this.dbConnector.enableTriggers(table.name);
     }
 
     private async before(table: Table) {

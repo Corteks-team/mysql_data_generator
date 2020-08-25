@@ -13,6 +13,7 @@ export default class Customizer {
         if (customTable) {
             table.maxLines = customTable.maxLines;
             table.addLines = customTable.addLines;
+            table.disableTriggers = customTable.disableTriggers;
             table.before = customTable.before;
             table.after = customTable.after;
         }
