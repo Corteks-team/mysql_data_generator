@@ -4,6 +4,7 @@ import { MySQLColumn } from '../src/database/mysql-column';
 
 
 export class TestConnector implements DatabaseConnector {
+    init=jest.fn();
     backupTriggers= jest.fn();
     cleanBackupTriggers=jest.fn();
     disableTriggers=jest.fn();

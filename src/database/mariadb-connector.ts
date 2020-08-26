@@ -1,7 +1,7 @@
 import { DatabaseConnector } from './database-connector-builder';
 import Knex from 'knex';
 import { Table } from '../table-descriptor.interface';
-import { getLogger } from 'log4js';
+import { getLogger, Logger } from 'log4js';
 import * as fs from 'fs-extra';
 import { Trigger } from './trigger';
 
@@ -28,16 +28,31 @@ export class MariaDBConnector implements DatabaseConnector {
                 password: password,
                 supportBigNumbers: true,
             },
+            log: {
+                warn: (message) => {
+                    this.logger.warn(message)
+                },
+                error: (message) => {
+                    this.logger.error(message)
+                },
+                deprecate: (message) => {
+                    this.logger.warn(message)
+                },
+                debug: (message) => {
+                    this.logger.debug(message)
+                }
+            }
         }).on('query-error', (err) => {
             this.logger.error(err.code, err.name);
-        });
-        this.dbConnection.raw('SET GLOBAL foreign_key_checks = OFF;')
-            .catch((err) => {
-                throw err;
-            });
+        })
+
         if (fs.existsSync(this.triggerBackupFile)) {
             this.triggers = fs.readJSONSync(this.triggerBackupFile);
         }
+    }
+
+    public async init(): Promise<void> {
+        await this.dbConnection.raw('SET GLOBAL foreign_key_checks = OFF;')
     }
 
     public async backupTriggers(tables: string[]): Promise<void> {
@@ -68,7 +83,7 @@ export class MariaDBConnector implements DatabaseConnector {
     public async enableTriggers(table: string): Promise<void> {
         for (let i = 0; i < this.triggers.length; i++) {
             const trigger = this.triggers[i]
-            if(trigger.EVENT_OBJECT_SCHEMA !== this.database || trigger.EVENT_OBJECT_TABLE !== table) continue
+            if (trigger.EVENT_OBJECT_SCHEMA !== this.database || trigger.EVENT_OBJECT_TABLE !== table) continue
             await this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`)
             await this.dbConnection.raw(
                 `CREATE DEFINER = ${trigger.DEFINER} 
@@ -76,7 +91,7 @@ export class MariaDBConnector implements DatabaseConnector {
                 ON ${trigger.EVENT_OBJECT_SCHEMA}.${trigger.EVENT_OBJECT_TABLE}
                 FOR EACH ROW
                 ${trigger.ACTION_STATEMENT}`
-                )
+            )
             this.triggers.splice(i, 1)
         }
     }

@@ -10,6 +10,7 @@ export interface ForeignKey {
 }
 
 export interface DatabaseConnector {
+    init(): Promise<void>;
     getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<Table[]>;
     getColumnsInformation(table: Table): Promise<MySQLColumn[]>;
     getForeignKeys(table: Table): Promise<ForeignKey[]>;
@@ -40,16 +41,18 @@ export class DatabaseConnectorBuilder {
         private engine: databaseEngine,
     ) { }
 
-    build(): DatabaseConnector {
+    public async build(): Promise<DatabaseConnector> {
         switch (this.engine) {
             case databaseEngine.MariaDB:
-                return new MariaDBConnector(
+                const connector = new MariaDBConnector(
                     this.ip,
                     this.port,
                     this.database,
                     this.user,
                     this.password
                 );
+                await connector.init();
+                return connector;
             default:
                 throw new Error('Unsupported engine.');
         }

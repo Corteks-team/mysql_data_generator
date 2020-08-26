@@ -3,7 +3,7 @@ import { CliMain, CliMainClass, CliParameter } from '@corteks/clify';
 import { readJSONSync, writeJSONSync } from 'fs-extra';
 import { Analyser, dummyCustomSchema } from './analysis/analyser';
 import { Generator } from './generation/generator';
-import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
+import { DatabaseConnectorBuilder, databaseEngine, DatabaseConnector } from './database/database-connector-builder';
 import { Schema } from './schema.interface';
 import Customizer from './analysis/customizer';
 
@@ -15,7 +15,7 @@ class Main extends CliMainClass {
     @CliParameter({ alias: 'db', demandOption: true, description: 'database', })
     private database: string | undefined = undefined;
 
-    @CliParameter({ alias: 'h'})
+    @CliParameter({ alias: 'h' })
     private host: string = '127.0.0.1:3306';
 
     @CliParameter()
@@ -34,12 +34,18 @@ class Main extends CliMainClass {
         if (!this.database) throw new Error('Please provide a valid database name');
         const [host, port] = this.host.split(':');
         const dbConnectorBuilder = new DatabaseConnectorBuilder(databaseEngine.MariaDB);
-        const dbConnector = dbConnectorBuilder
-            .setHost(host)
-            .setPort(parseInt(port, 10))
-            .setDatabase(this.database)
-            .setCredentials(this.user, this.password)
-            .build();
+        let dbConnector: DatabaseConnector;
+        try {
+            dbConnector = await dbConnectorBuilder
+                .setHost(host)
+                .setPort(parseInt(port, 10))
+                .setDatabase(this.database)
+                .setCredentials(this.user, this.password)
+                .build();
+        } catch (err) {
+            logger.error(err.message)
+            return 1;
+        }
         try {
             if (this.analyse) {
                 let customSchema: Schema = dummyCustomSchema;
