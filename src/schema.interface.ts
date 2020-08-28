@@ -15,6 +15,7 @@ export interface Schema {
                 options: ColumnOptions;
             }
         >;
+        seed?: number;
     };
     tables: Table[];
 }
