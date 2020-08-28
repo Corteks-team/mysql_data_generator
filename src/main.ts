@@ -1,6 +1,6 @@
 import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter } from '@corteks/clify';
-import { readJSONSync, writeJSONSync } from 'fs-extra';
+import * as fs from 'fs-extra';
 import { Analyser, dummyCustomSchema } from './analysis/analyser';
 import { Generator } from './generation/generator';
 import { DatabaseConnectorBuilder, databaseEngine, DatabaseConnector } from './database/database-connector-builder';
@@ -44,14 +44,17 @@ class Main extends CliMainClass {
                 .setCredentials(this.user, this.password)
                 .build();
         } catch (err) {
-            logger.error(err.message)
+            logger.error(err.message);
             return 1;
+        }
+        if (!fs.pathExistsSync('settings')) {
+            fs.mkdirSync('settings');
         }
         try {
             if (this.analyse) {
                 let customSchema: Schema = dummyCustomSchema;
                 try {
-                    customSchema = readJSONSync(path.join('settings', 'custom_schema.json'));
+                    customSchema = fs.readJSONSync(path.join('settings', 'custom_schema.json'));
                 } catch (ex) {
                     logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
                 }
@@ -63,13 +66,13 @@ class Main extends CliMainClass {
                     logger
                 );
                 const json = await analyser.analyse();
-                writeJSONSync(path.join('settings', 'schema.json'), json, { spaces: 4 });
+                fs.writeJSONSync(path.join('settings', 'schema.json'), json, { spaces: 4 });
                 return 0;
             };
 
-            let schema: Schema = readJSONSync(path.join('settings', 'schema.json'));
+            let schema: Schema = fs.readJSONSync(path.join('settings', 'schema.json'));
             const tableService = new Generator(dbConnector, schema, logger);
-            await dbConnector.backupTriggers(schema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name))
+            await dbConnector.backupTriggers(schema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
             /** @todo: Remove deprecated warning */
             let useDeprecatedLines = false;
             for (const table of schema.tables) {
@@ -83,7 +86,7 @@ class Main extends CliMainClass {
             }
             if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
             /****************/
-            dbConnector.cleanBackupTriggers()
+            dbConnector.cleanBackupTriggers();
         } catch (ex) {
             if (ex.code == 'ENOENT') {
                 logger.error('Unable to read from ./settings/schema.json. Please run with --analyse first.');
