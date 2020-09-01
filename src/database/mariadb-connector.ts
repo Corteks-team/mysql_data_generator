@@ -4,12 +4,13 @@ import { Table } from '../table-descriptor.interface';
 import { getLogger, Logger } from 'log4js';
 import * as fs from 'fs-extra';
 import { Trigger } from './trigger';
+import * as path from 'path';
 
 export class MariaDBConnector implements DatabaseConnector {
     private dbConnection: Knex;
     private triggers: Trigger[] = [];
     private logger = getLogger();
-    private triggerBackupFile: string = 'triggers.json'
+    private triggerBackupFile: string = path.join('settings', 'triggers.json');
 
     constructor(
         ip: string,
@@ -30,21 +31,21 @@ export class MariaDBConnector implements DatabaseConnector {
             },
             log: {
                 warn: (message) => {
-                    this.logger.warn(message)
+                    this.logger.warn(message);
                 },
                 error: (message) => {
-                    this.logger.error(message)
+                    this.logger.error(message);
                 },
                 deprecate: (message) => {
-                    this.logger.warn(message)
+                    this.logger.warn(message);
                 },
                 debug: (message) => {
-                    this.logger.debug(message)
+                    this.logger.debug(message);
                 }
             }
         }).on('query-error', (err) => {
             this.logger.error(err.code, err.name);
-        })
+        });
 
         if (fs.existsSync(this.triggerBackupFile)) {
             this.triggers = fs.readJSONSync(this.triggerBackupFile);
@@ -52,7 +53,7 @@ export class MariaDBConnector implements DatabaseConnector {
     }
 
     public async init(): Promise<void> {
-        await this.dbConnection.raw('SET GLOBAL foreign_key_checks = OFF;')
+        await this.dbConnection.raw('SET GLOBAL foreign_key_checks = OFF;');
     }
 
     public async backupTriggers(tables: string[]): Promise<void> {
@@ -61,38 +62,38 @@ export class MariaDBConnector implements DatabaseConnector {
             .from('information_schema.TRIGGERS')
             .where('event_object_schema', this.database)
             .whereIn(`event_object_table`, tables);
-        this.triggers = this.triggers.concat(triggers)
+        this.triggers = this.triggers.concat(triggers);
         fs.writeJSONSync(this.triggerBackupFile, this.triggers);
     }
 
     public cleanBackupTriggers(): void {
-        fs.unlinkSync(this.triggerBackupFile)
+        fs.unlinkSync(this.triggerBackupFile);
     }
 
     public async disableTriggers(table: string): Promise<void> {
         const triggers = this.triggers.filter((trigger) => {
-            return trigger.EVENT_OBJECT_SCHEMA === this.database && trigger.EVENT_OBJECT_TABLE === table
-        })
+            return trigger.EVENT_OBJECT_SCHEMA === this.database && trigger.EVENT_OBJECT_TABLE === table;
+        });
         const promises = triggers.map((trigger) => {
-            return this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`)
-        })
+            return this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`);
+        });
         await Promise.all(promises)
-            .catch(err => console.warn(err.message))
+            .catch(err => console.warn(err.message));
     }
 
     public async enableTriggers(table: string): Promise<void> {
         for (let i = 0; i < this.triggers.length; i++) {
-            const trigger = this.triggers[i]
-            if (trigger.EVENT_OBJECT_SCHEMA !== this.database || trigger.EVENT_OBJECT_TABLE !== table) continue
-            await this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`)
+            const trigger = this.triggers[i];
+            if (trigger.EVENT_OBJECT_SCHEMA !== this.database || trigger.EVENT_OBJECT_TABLE !== table) continue;
+            await this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`);
             await this.dbConnection.raw(
                 `CREATE DEFINER = ${trigger.DEFINER} 
                 TRIGGER ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME} ${trigger.ACTION_TIMING} ${trigger.EVENT_MANIPULATION} 
                 ON ${trigger.EVENT_OBJECT_SCHEMA}.${trigger.EVENT_OBJECT_TABLE}
                 FOR EACH ROW
                 ${trigger.ACTION_STATEMENT}`
-            )
-            this.triggers.splice(i, 1)
+            );
+            this.triggers.splice(i, 1);
         }
     }
 

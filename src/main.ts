@@ -45,8 +45,11 @@ class Main extends CliMainClass {
                 .setCredentials(this.user, this.password)
                 .build();
         } catch (err) {
-            logger.error(err.message)
+            logger.error(err.message);
             return 1;
+        }
+        if (!fs.pathExistsSync('settings')) {
+            fs.mkdirSync('settings');
         }
         try {
             if (this.analyse) {
@@ -70,7 +73,7 @@ class Main extends CliMainClass {
 
             let schema: Schema = fs.readJSONSync(path.join('settings', 'schema.json'));
             const tableService = new Generator(dbConnector, schema, logger);
-            await dbConnector.backupTriggers(schema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name))
+            await dbConnector.backupTriggers(schema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
             /** @todo: Remove deprecated warning */
             let useDeprecatedLines = false;
             for (const table of schema.tables) {
@@ -84,7 +87,7 @@ class Main extends CliMainClass {
             }
             if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
             /****************/
-            dbConnector.cleanBackupTriggers()
+            dbConnector.cleanBackupTriggers();
         } catch (ex) {
             if (ex.code == 'ENOENT') {
                 logger.error('Unable to read from ./settings/schema.json. Please run with --analyse first.');
