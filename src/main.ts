@@ -1,12 +1,13 @@
 import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter } from '@corteks/clify';
-import { readJSONSync, writeJSONSync } from 'fs-extra';
+import * as fs from 'fs-extra';
 import { Analyser, dummyCustomSchema } from './analysis/analyser';
 import { Generator } from './generation/generator';
 import { DatabaseConnectorBuilder, databaseEngine, DatabaseConnector } from './database/database-connector-builder';
 import { Schema } from './schema.interface';
 import Customizer from './analysis/customizer';
 import * as path from 'path';
+import * as JSONC from 'jsonc-parser'
 
 const logger = getLogger();
 logger.level = "debug";
@@ -51,7 +52,7 @@ class Main extends CliMainClass {
             if (this.analyse) {
                 let customSchema: Schema = dummyCustomSchema;
                 try {
-                    customSchema = readJSONSync(path.join('settings', 'custom_schema.json'));
+                    customSchema = JSONC.parse(fs.readFileSync(path.join('settings', 'custom_schema.jsonc')).toString());
                 } catch (ex) {
                     logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
                 }
@@ -63,11 +64,11 @@ class Main extends CliMainClass {
                     logger
                 );
                 const json = await analyser.analyse();
-                writeJSONSync(path.join('settings', 'schema.json'), json, { spaces: 4 });
+                fs.writeJSONSync(path.join('settings', 'schema.json'), json, { spaces: 4 });
                 return 0;
             };
 
-            let schema: Schema = readJSONSync(path.join('settings', 'schema.json'));
+            let schema: Schema = fs.readJSONSync(path.join('settings', 'schema.json'));
             const tableService = new Generator(dbConnector, schema, logger);
             await dbConnector.backupTriggers(schema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name))
             /** @todo: Remove deprecated warning */
