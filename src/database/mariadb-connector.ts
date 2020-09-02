@@ -1,7 +1,7 @@
 import { DatabaseConnector } from './database-connector-builder';
 import Knex from 'knex';
 import { Table } from '../table-descriptor.interface';
-import { getLogger, Logger } from 'log4js';
+import { getLogger } from 'log4js';
 import * as fs from 'fs-extra';
 import { Trigger } from './trigger';
 import * as path from 'path';
