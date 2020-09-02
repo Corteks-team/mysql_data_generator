@@ -22,14 +22,8 @@ npm install -g @corteks/mysql-data-generator
 mysqldatagen --host 127.0.0.1 --user USER --password PASSWORD --database DATABASE --analyse
 ```
 
-If you want to customize the schema, rename `settings/schema.json` to `settings/custom_schema.json`.
-Update the `settings/custom_schema.json` to fit your needs and run analysis again:
-
-```
-mysqldatagen --host 127.0.0.1 --user USER --password PASSWORD --database DATABASE --analyse
-```
-
-The `settings/schema.json` will now take in account your modification.
+If you want to customize the schema, copy `settings/schema.json` to `settings/custom_schema.json`.
+Update the `settings/custom_schema.json` to fit your needs.
 
 ## 2. Data generation
 
@@ -65,4 +59,7 @@ Available options in `custom_schema.json`:
     - `Column.generator: string` // data type generator used for this column
     - `Column.options: [key: string]: any[]` // list of options for this column
     - `Column.foreignKey: { table: string, column: string, where: string }` // link to the table.column referenced by this foreign key. A custom clause can ba added to filter value from the foreign column
-    - `Column.values: string | any[]` // Name of the list of values to use for this column. You can also directly specify an array of strings for values
+    - `Column.values: string | any[] | { [key: string]: number }` 
+      // Name of the list of values to use for this column. 
+      // You can also directly specify an array of strings for values. 
+      // Or you can use an object to specify a ratio per value. Ratio will be a number between 0 and 1.
