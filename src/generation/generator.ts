@@ -74,7 +74,7 @@ export class Generator {
             if (table.maxLines) maxLines = Math.min(maxLines, table.maxLines);
         }
         else if (table.maxLines) maxLines = table.maxLines;
-        this.logger.info(currentNbRows + ' / ' + maxLines);
+        process.stdout.write(currentNbRows + ' / ' + maxLines);
         batch: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
@@ -84,6 +84,7 @@ export class Generator {
             try {
                 await this.getForeignKeyValues(table, tableForeignKeyValues, runRows);
             } catch (ex) {
+                process.stdout.write('\n')
                 this.logger.warn(ex.message);
                 break batch;
             }
@@ -183,11 +184,15 @@ export class Generator {
             }
             currentNbRows += await this.dbConnector.insert(table.name, rows);
             if (previousRunRows === currentNbRows) {
+                process.stdout.write('\n')
                 this.logger.warn(`Last run didn't insert any new rows in ${table.name}`);
                 break batch;
             }
-            this.logger.info(currentNbRows + ' / ' + maxLines);
+            process.stdout.clearLine(-1);  // clear current text
+            process.stdout.cursorTo(0);
+            process.stdout.write(currentNbRows + ' / ' + maxLines);
         }
+        process.stdout.write('\n')
     }
 
     private async after(table: Table) {
