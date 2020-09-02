@@ -77,7 +77,7 @@ export class Generator {
             if (table.maxLines) maxLines = Math.min(maxLines, table.maxLines);
         }
         else if (table.maxLines) maxLines = table.maxLines;
-        this.logger.info(currentNbRows);
+        this.logger.info(currentNbRows + ' / ' + maxLines);
         batch: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
@@ -187,7 +187,7 @@ export class Generator {
                 this.logger.warn(`Last run didn't insert any new rows in ${table.name}`);
                 break batch;
             }
-            this.logger.info(currentNbRows + ' / ' + table.maxLines);
+            this.logger.info(currentNbRows + ' / ' + maxLines);
         }
     }
 
