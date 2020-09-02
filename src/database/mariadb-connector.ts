@@ -1,9 +1,6 @@
-import { DatabaseConnector } from './database-connector-builder';
 import Knex from 'knex';
-import { Table } from '../table-descriptor.interface';
 import { getLogger } from 'log4js';
 import * as fs from 'fs-extra';
-import { Trigger } from './trigger';
 import * as path from 'path';
 
 export class MariaDBConnector implements DatabaseConnector {
@@ -118,7 +115,7 @@ export class MariaDBConnector implements DatabaseConnector {
         for (const t in tables) {
             const table = tables[t];
             table.referencedTables = (table.referencedTablesString as string || '').split(',').filter(x => x.length > 0);
-            delete (table.referencedTablesString)            
+            delete (table.referencedTablesString)
         }
         return tables;
     }

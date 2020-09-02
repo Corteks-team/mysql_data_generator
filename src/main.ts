@@ -3,9 +3,8 @@ import { CliMain, CliMainClass, CliParameter } from '@corteks/clify';
 import * as fs from 'fs-extra';
 import { Analyser } from './analysis/analyser';
 import { Generator } from './generation/generator';
-import { DatabaseConnectorBuilder, databaseEngine, DatabaseConnector } from './database/database-connector-builder';
-import { Schema } from './schema.interface';
-import Customizer, { dummyCustomSchema, CustomSchema } from './analysis/customizer';
+import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
+import Customizer, { dummyCustomSchema } from './analysis/customizer';
 import * as path from 'path';
 import * as JSONC from 'jsonc-parser'
 
@@ -52,7 +51,7 @@ class Main extends CliMainClass {
             fs.mkdirSync('settings');
         }
         try {
-            if (this.analyse) {                                           
+            if (this.analyse) {
                 const analyser = new Analyser(
                     dbConnector,
                     logger
@@ -63,12 +62,12 @@ class Main extends CliMainClass {
             };
 
             let schema: Schema = fs.readJSONSync(path.join('settings', 'schema.json'));
-            let customSchema: CustomSchema = dummyCustomSchema;    
+            let customSchema: CustomSchema = dummyCustomSchema;
             try {
                 customSchema = JSONC.parse(fs.readFileSync(path.join('settings', 'custom_schema.jsonc')).toString());
             } catch (ex) {
                 logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
-            } 
+            }
             const customizer = new Customizer(customSchema, dbConnector, logger);
             customSchema = await customizer.customize(schema);
             const tableService = new Generator(dbConnector, customSchema, logger);

@@ -1,10 +1,4 @@
-import { ColumnOptions } from '../column';
-import { MySQLColumn } from '../database/mysql-column';
-import { DatabaseConnector } from '../database/database-connector-builder';
-import { Schema } from '../schema.interface';
-import { Table } from '../table-descriptor.interface';
 import { Logger } from 'log4js';
-
 
 export class Analyser {
     constructor(

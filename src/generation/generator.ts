@@ -1,9 +1,5 @@
-import { DatabaseConnector } from '../database/database-connector-builder';
 import { Random, MersenneTwister19937 } from "random-js";
-import { Table } from '../table-descriptor.interface';
 import { Logger } from 'log4js';
-import { CustomSchema } from '../analysis/customizer';
-import { Values, ParsedValues, ValuesWithRatio } from '../column'
 
 export class Generator {
     private random: Random;

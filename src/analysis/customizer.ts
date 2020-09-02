@@ -1,27 +1,5 @@
-import { Table } from '../table-descriptor.interface';
 import { Logger } from 'log4js';
 import { databaseEngines } from '../database-engines';
-import { ColumnOptions } from '../column';
-import { Schema } from '../schema.interface';
-import { DatabaseConnector } from '../database/database-connector-builder';
-
-export interface CustomSchema {
-    settings: {
-        engine: databaseEngines;
-        disableTriggers: boolean;
-        ignoredTables: string[];
-        tablesToFill: string[];
-        values: { [key: string]: any[]; };
-        options: Array<
-            {
-                dataTypes: string[],
-                options: ColumnOptions;
-            }
-        >;
-        seed?: number;
-    };
-    tables: Table[],
-}
 
 export const dummyCustomSchema: CustomSchema = {
     settings: {
