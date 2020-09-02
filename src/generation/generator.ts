@@ -1,15 +1,15 @@
 import { DatabaseConnector } from '../database/database-connector-builder';
 import { Random, MersenneTwister19937 } from "random-js";
-import { Schema } from '../schema.interface';
 import { Table } from '../table-descriptor.interface';
 import { Logger } from 'log4js';
+import { CustomSchema } from '../analysis/customizer';
 
 export class Generator {
     private random: Random;
 
     constructor(
         private dbConnector: DatabaseConnector,
-        private schema: Schema,
+        private schema: CustomSchema,
         private logger: Logger
     ) {
         if (schema.settings.seed) {
