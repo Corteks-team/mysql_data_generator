@@ -1,4 +1,7 @@
-export type Values = string | string[] | { [key: string]: number; };
+export type ValuePointer = string
+export type ParsedValues = string[]
+export type ValuesWithRatio = { [key: string]: number; }
+export type Values = ValuePointer | ParsedValues | ValuesWithRatio;
 
 export interface Column {
     name: string;
