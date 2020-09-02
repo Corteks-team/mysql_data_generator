@@ -1,11 +1,11 @@
 import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter } from '@corteks/clify';
 import * as fs from 'fs-extra';
-import { Analyser, dummyCustomSchema } from './analysis/analyser';
+import { Analyser } from './analysis/analyser';
 import { Generator } from './generation/generator';
 import { DatabaseConnectorBuilder, databaseEngine, DatabaseConnector } from './database/database-connector-builder';
 import { Schema } from './schema.interface';
-import Customizer from './analysis/customizer';
+import Customizer, { dummyCustomSchema, CustomSchema } from './analysis/customizer';
 import * as path from 'path';
 import * as JSONC from 'jsonc-parser'
 
@@ -52,18 +52,9 @@ class Main extends CliMainClass {
             fs.mkdirSync('settings');
         }
         try {
-            if (this.analyse) {
-                let customSchema: Schema = dummyCustomSchema;
-                try {
-                    customSchema = JSONC.parse(fs.readFileSync(path.join('settings', 'custom_schema.jsonc')).toString());
-                } catch (ex) {
-                    logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
-                }
-                const customizer = new Customizer(customSchema, logger);
+            if (this.analyse) {                                           
                 const analyser = new Analyser(
                     dbConnector,
-                    customSchema,
-                    customizer,
                     logger
                 );
                 const json = await analyser.analyse();
@@ -72,17 +63,25 @@ class Main extends CliMainClass {
             };
 
             let schema: Schema = fs.readJSONSync(path.join('settings', 'schema.json'));
-            const tableService = new Generator(dbConnector, schema, logger);
-            await dbConnector.backupTriggers(schema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
+            let customSchema: CustomSchema = dummyCustomSchema;    
+            try {
+                customSchema = JSONC.parse(fs.readFileSync(path.join('settings', 'custom_schema.jsonc')).toString());
+            } catch (ex) {
+                logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
+            } 
+            const customizer = new Customizer(customSchema, dbConnector, logger);
+            customSchema = await customizer.customize(schema);
+            const tableService = new Generator(dbConnector, customSchema, logger);
+            await dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
             /** @todo: Remove deprecated warning */
             let useDeprecatedLines = false;
-            for (const table of schema.tables) {
+            for (const table of customSchema.tables) {
                 if (table.lines) {
                     useDeprecatedLines = true;
                     table.maxLines = table.lines;
                 }
                 if (table.maxLines || table.addLines) {
-                    await tableService.fill(table, this.reset, schema.settings.disableTriggers);
+                    await tableService.fill(table, this.reset, customSchema.settings.disableTriggers);
                 }
             }
             if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
