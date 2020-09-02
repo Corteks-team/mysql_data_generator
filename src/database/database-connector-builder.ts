@@ -11,7 +11,7 @@ export interface ForeignKey {
 
 export interface DatabaseConnector {
     init(): Promise<void>;
-    getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<Table[]>;
+    getTablesInformation(): Promise<Table[]>;
     getColumnsInformation(table: Table): Promise<MySQLColumn[]>;
     getForeignKeys(table: Table): Promise<ForeignKey[]>;
     countLines(table: Table): Promise<number>;

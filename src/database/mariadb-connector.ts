@@ -113,9 +113,6 @@ export class MariaDBConnector implements DatabaseConnector {
             .groupBy('t.TABLE_SCHEMA', 't.TABLE_NAME')
             .orderBy(2);
 
-        if (ignoredTables.length > 0) tablesQuery.whereNotIn('t.TABLE_NAME', ignoredTables);
-        if (tablesToFill.length > 0) tablesQuery.whereIn('t.TABLE_NAME', tablesToFill);
-
         const tables = await tablesQuery;
 
         for (const t in tables) {
