@@ -46,7 +46,10 @@ export default class Customizer {
         let tables = schema.tables
             .filter((table) => {
                 return !this.customSchema.settings.ignoredTables.includes(table.name)
-                    || this.customSchema.settings.tablesToFill.includes(table.name)
+                    && (
+                        this.customSchema.settings.tablesToFill.length === 0
+                        || this.customSchema.settings.tablesToFill.includes(table.name)
+                    )
             });
 
         tables = await Promise.all(tables.map(async (table) => {
