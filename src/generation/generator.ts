@@ -3,6 +3,7 @@ import { Random, MersenneTwister19937 } from "random-js";
 import { Table } from '../table-descriptor.interface';
 import { Logger } from 'log4js';
 import { CustomSchema } from '../analysis/customizer';
+import { Values, ParsedValues, ValuesWithRatio } from '../column'
 
 export class Generator {
     private random: Random;
@@ -97,19 +98,21 @@ export class Generator {
                     const column = table.columns[c];
                     if (column.options.autoIncrement) continue;
                     if (column.values) {
-                        if (Array.isArray(column.values)) {
-                            row[column.name] = this.random.pick(column.values);
-                        } else if (typeof column.values === 'string') {
-                            row[column.name] = this.random.pick(this.schema.settings.values[column.values]);
-                        } else {
-                            let valuesWithRatio: string[] = [];
-                            Object.keys(column.values).forEach((key: string) => {
-                                let arr = new Array((column.values as any)[key]);
-                                arr = arr.fill(key);
-                                valuesWithRatio = valuesWithRatio.concat(arr);
-                            });
-                            row[column.name] = valuesWithRatio[this.random.integer(0, valuesWithRatio.length - 1)];
+                        let parsedValues: ParsedValues = []
+                        let values: Values = column.values;
+                        if (typeof values === 'string') {
+                            values = this.schema.settings.values[values] as ParsedValues | ValuesWithRatio;
                         }
+                        if (!(values instanceof Array)) {
+                            Object.keys(values).forEach((key: string) => {
+                                let arr = new Array(Math.round((values as any)[key] * 100));
+                                arr = arr.fill(key);
+                                parsedValues = parsedValues.concat(arr);
+                            });
+                        } else {
+                            parsedValues = values
+                        }
+                        row[column.name] = this.random.pick(parsedValues);
                         continue;
                     }
                     if (column.foreignKey) {
