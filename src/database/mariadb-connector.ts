@@ -97,7 +97,7 @@ export class MariaDBConnector implements DatabaseConnector {
         }
     }
 
-    async getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<Table[]> {
+    async getTablesInformation(): Promise<Table[]> {
         const tablesQuery = this.dbConnection
             .select([
                 this.dbConnection.raw('t.TABLE_NAME AS name'),
