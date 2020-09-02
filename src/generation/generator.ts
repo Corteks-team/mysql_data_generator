@@ -36,7 +36,7 @@ export class Generator {
                     column.foreignKey.where,
                 );
                 if (values.length === 0 && !column.options.nullable) {
-                    throw new Error(`${table}: Not enough values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
+                    throw new Error(`${table.name}: Not enough values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
                 }
                 tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
             }
