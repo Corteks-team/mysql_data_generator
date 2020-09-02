@@ -116,12 +116,10 @@ export class MariaDBConnector implements DatabaseConnector {
         const tables = await tablesQuery;
 
         for (const t in tables) {
-            process.stdout.write('.');
             const table = tables[t];
-            table.referencedTables = (table.referencedTablesString || '').split(',');
-            table.maxLines = await this.countLines(table);
+            table.referencedTables = (table.referencedTablesString as string || '').split(',').filter(x => x.length > 0);
+            delete (table.referencedTablesString)            
         }
-        process.stdout.write('\n');
         return tables;
     }
 
