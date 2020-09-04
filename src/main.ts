@@ -79,9 +79,7 @@ class Main extends CliMainClass {
                     useDeprecatedLines = true;
                     table.maxLines = table.lines;
                 }
-                if (table.maxLines || table.addLines) {
-                    await tableService.fill(table, this.reset, customSchema.settings.disableTriggers);
-                }
+                await tableService.fill(table, this.reset, customSchema.settings.disableTriggers);
             }
             if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
             /****************/
