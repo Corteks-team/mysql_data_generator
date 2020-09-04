@@ -27,7 +27,7 @@ export default class Customizer {
                     && (
                         this.customSchema.settings.tablesToFill.length === 0
                         || this.customSchema.settings.tablesToFill.includes(table.name)
-                    )
+                    );
             });
 
         tables = await Promise.all(tables.map(async (table) => {
@@ -35,7 +35,7 @@ export default class Customizer {
             await this.extractForeignKeys(table);
             return table;
         }));
-        this.customSchema.tables = this.orderTablesByForeignKeys(tables)
+        this.customSchema.tables = this.orderTablesByForeignKeys(tables);
         return this.customSchema;
     }
 
