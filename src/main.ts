@@ -58,6 +58,10 @@ class Main extends CliMainClass {
                 );
                 const json = await analyser.analyse();
                 fs.writeJSONSync(path.join('settings', 'schema.json'), json, { spaces: 4 });
+                if (!fs.existsSync(path.join('settings', 'custom_schema.jsonc'))) {
+                    let customSchema: CustomSchema = dummyCustomSchema;
+                    fs.writeJSONSync(path.join('settings', 'custom_schema.jsonc'), customSchema, { spaces: 4 });
+                }
                 return 0;
             };
 
