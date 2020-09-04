@@ -1,9 +1,6 @@
-import { DatabaseConnector } from './database-connector-builder';
 import Knex from 'knex';
-import { Table } from '../table-descriptor.interface';
-import { getLogger, Logger } from 'log4js';
+import { getLogger } from 'log4js';
 import * as fs from 'fs-extra';
-import { Trigger } from './trigger';
 import * as path from 'path';
 
 export class MariaDBConnector implements DatabaseConnector {
@@ -97,7 +94,7 @@ export class MariaDBConnector implements DatabaseConnector {
         }
     }
 
-    async getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<Table[]> {
+    async getTablesInformation(): Promise<Table[]> {
         const tablesQuery = this.dbConnection
             .select([
                 this.dbConnection.raw('t.TABLE_NAME AS name'),
@@ -113,15 +110,12 @@ export class MariaDBConnector implements DatabaseConnector {
             .groupBy('t.TABLE_SCHEMA', 't.TABLE_NAME')
             .orderBy(2);
 
-        if (ignoredTables.length > 0) tablesQuery.whereNotIn('t.TABLE_NAME', ignoredTables);
-        if (tablesToFill.length > 0) tablesQuery.whereIn('t.TABLE_NAME', tablesToFill);
-
         const tables = await tablesQuery;
 
         for (const t in tables) {
             const table = tables[t];
-            table.referencedTables = (table.referencedTablesString || '').split(',');
-            table.maxLines = await this.countLines(table);
+            table.referencedTables = (table.referencedTablesString as string || '').split(',').filter(x => x.length > 0);
+            delete (table.referencedTablesString)
         }
         return tables;
     }

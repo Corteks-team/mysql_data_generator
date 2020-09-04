@@ -1,30 +1,4 @@
 import { MariaDBConnector } from './mariadb-connector';
-import { MySQLColumn } from './mysql-column';
-import { Table } from '../table-descriptor.interface';
-
-export interface ForeignKey {
-    column: string,
-    foreignTable: string,
-    foreignColumn: string;
-    uniqueIndex: boolean;
-}
-
-export interface DatabaseConnector {
-    init(): Promise<void>;
-    getTablesInformation(ignoredTables: string[], tablesToFill: string[]): Promise<Table[]>;
-    getColumnsInformation(table: Table): Promise<MySQLColumn[]>;
-    getForeignKeys(table: Table): Promise<ForeignKey[]>;
-    countLines(table: Table): Promise<number>;
-    emptyTable(table: Table): Promise<void>;
-    getValuesForForeignKeys(table: string, column: string, foreignTable: string, foreignColumn: string, limit: number, unique: boolean, condition: string | undefined): Promise<any[]>;
-    executeRawQuery(query: string): Promise<void>;
-    insert(table: string, lines: any[]): Promise<number>;
-    destroy(): Promise<void>;
-    backupTriggers(tables: string[]): Promise<void>;
-    cleanBackupTriggers(): void;
-    disableTriggers(table: string): Promise<void>;
-    enableTriggers(table: string): Promise<void>;
-}
 
 export enum databaseEngine {
     'MariaDB'

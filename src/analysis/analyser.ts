@@ -1,53 +1,19 @@
-import { ColumnOptions } from '../column';
-import { MySQLColumn } from '../database/mysql-column';
-import { DatabaseConnector } from '../database/database-connector-builder';
-import { Schema } from '../schema.interface';
-import { Table } from '../table-descriptor.interface';
-import { databaseEngines } from '../database-engines';
-import Customizer from './customizer';
 import { Logger } from 'log4js';
-
-export const dummyCustomSchema: Schema = {
-    settings: {
-        engine: databaseEngines.MARIADB,
-        disableTriggers: false,
-        ignoredTables: [],
-        tablesToFill: [],
-        options: [],
-        values: {}
-    },
-    tables: [],
-};
 
 export class Analyser {
     constructor(
         private dbConnector: DatabaseConnector,
-        private customSchema: Schema,
-        private customizer: Customizer,
         private logger: Logger
-    ) {
-        /** @todo: Remove deprecated warning */
-        let useDeprecatedLines = false;
-        customSchema.tables.forEach((table) => {
-            if (table.lines) {
-                useDeprecatedLines = true;
-                table.maxLines = table.lines;
-            }
-        });
-        if (useDeprecatedLines) logger.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
-        /****************/
-    }
+    ) { }
 
-    public async analyse() {
-        let tables = await this.dbConnector.getTablesInformation(this.customSchema.settings.ignoredTables, this.customSchema.settings.tablesToFill);
+    public async analyse(): Promise<Schema> {
+        let tables = await this.dbConnector.getTablesInformation();
         tables = await Promise.all(tables.map(async (table) => {
             await this.extractColumns(table);
-            this.customizer.customizeTable(table);
             await this.extractForeignKeys(table);
             return table;
         }));
-
-        return this.generateJson(this.orderTablesByForeignKeys(tables));
+        return { tables: tables };
     }
 
     private async extractColumns(table: Table) {
@@ -167,74 +133,14 @@ export class Analyser {
 
     private extractForeignKeys = async (table: Table) => {
         const foreignKeys = await this.dbConnector.getForeignKeys(table);
-        const customTable: Table = Object.assign({
-            name: '',
-            columns: [],
-            maxLines: 0,
-        }, this.customSchema.tables.find(t => t.name.toLowerCase() === table.name.toLowerCase()));
         for (let c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
             const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
             if (match) {
                 column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
                 column.options.unique = column.options.unique || match.uniqueIndex;
-            }
-            const customColumn = customTable.columns.find(cc => cc.name.toLowerCase() === column.name.toLowerCase());
-            if (customColumn) {
-                column.options = Object.assign({}, column.options, customColumn.options);
-                if (customColumn.foreignKey) column.foreignKey = customColumn.foreignKey;
-                if (customColumn.values) column.values = customColumn.values;
-            }
-            if (column.foreignKey) {
                 table.referencedTables.push(column.foreignKey.table);
             }
         }
     };
-
-    private orderTablesByForeignKeys(tables: Table[]) {
-        let sortedTables: Table[] = [];
-        const recursive = (branch: Table[]) => {
-            const table = branch[branch.length - 1];
-            while (table.referencedTables.length > 0) {
-                const tableName = table.referencedTables.pop();
-                const referencedTable = tables.find((t) => {
-                    return t.name === tableName;
-                });
-                if (referencedTable) recursive(([] as any).concat(branch, referencedTable));
-            };
-
-            if (sortedTables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;
-            sortedTables.push({
-                name: table.name,
-                disableTriggers: table.disableTriggers,
-                maxLines: table.maxLines,
-                addLines: table.addLines,
-                columns: table.columns,
-                before: table.before,
-                after: table.after,
-                referencedTables: []
-            } as Table);
-            branch.pop();
-            return;
-        };
-
-        tables.forEach((table) => {
-            recursive([table]);
-        });
-        return sortedTables;
-    };
-
-    private generateJson(tables: Table[]): Schema {
-        return {
-            settings: {
-                engine: this.customSchema.settings.engine,
-                disableTriggers: !!this.customSchema.settings.disableTriggers,
-                ignoredTables: this.customSchema.settings.ignoredTables,
-                tablesToFill: this.customSchema.settings.tablesToFill,
-                options: this.customSchema.settings.options,
-                values: this.customSchema.settings.values,
-            },
-            tables: tables,
-        };
-    }
 }

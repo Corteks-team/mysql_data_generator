@@ -1,7 +1,4 @@
-import { DatabaseConnector } from '../database/database-connector-builder';
 import { Random, MersenneTwister19937 } from "random-js";
-import { Schema } from '../schema.interface';
-import { Table } from '../table-descriptor.interface';
 import { Logger } from 'log4js';
 
 export class Generator {
@@ -9,7 +6,7 @@ export class Generator {
 
     constructor(
         private dbConnector: DatabaseConnector,
-        private schema: Schema,
+        private schema: CustomSchema,
         private logger: Logger
     ) {
         if (schema.settings.seed) {
@@ -39,7 +36,7 @@ export class Generator {
                     column.foreignKey.where,
                 );
                 if (values.length === 0 && !column.options.nullable) {
-                    throw new Error(`${table}: Not enough values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
+                    throw new Error(`${table.name}: Not enough values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
                 }
                 tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
             }
@@ -77,7 +74,7 @@ export class Generator {
             if (table.maxLines) maxLines = Math.min(maxLines, table.maxLines);
         }
         else if (table.maxLines) maxLines = table.maxLines;
-        this.logger.info(currentNbRows);
+        process.stdout.write(currentNbRows + ' / ' + maxLines);
         batch: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
@@ -87,6 +84,7 @@ export class Generator {
             try {
                 await this.getForeignKeyValues(table, tableForeignKeyValues, runRows);
             } catch (ex) {
+                process.stdout.write('\n')
                 this.logger.warn(ex.message);
                 break batch;
             }
@@ -97,19 +95,21 @@ export class Generator {
                     const column = table.columns[c];
                     if (column.options.autoIncrement) continue;
                     if (column.values) {
-                        if (Array.isArray(column.values)) {
-                            row[column.name] = this.random.pick(column.values);
-                        } else if (typeof column.values === 'string') {
-                            row[column.name] = this.random.pick(this.schema.settings.values[column.values]);
-                        } else {
-                            let valuesWithRatio: string[] = [];
-                            Object.keys(column.values).forEach((key: string) => {
-                                let arr = new Array((column.values as any)[key]);
-                                arr = arr.fill(key);
-                                valuesWithRatio = valuesWithRatio.concat(arr);
-                            });
-                            row[column.name] = valuesWithRatio[this.random.integer(0, valuesWithRatio.length - 1)];
+                        let parsedValues: ParsedValues = []
+                        let values: Values = column.values;
+                        if (typeof values === 'string') {
+                            values = this.schema.settings.values[values] as ParsedValues | ValuesWithRatio;
                         }
+                        if (!(values instanceof Array)) {
+                            Object.keys(values).forEach((key: string) => {
+                                let arr = new Array(Math.round((values as any)[key] * 100));
+                                arr = arr.fill(key);
+                                parsedValues = parsedValues.concat(arr);
+                            });
+                        } else {
+                            parsedValues = values
+                        }
+                        row[column.name] = this.random.pick(parsedValues);
                         continue;
                     }
                     if (column.foreignKey) {
@@ -184,11 +184,15 @@ export class Generator {
             }
             currentNbRows += await this.dbConnector.insert(table.name, rows);
             if (previousRunRows === currentNbRows) {
+                process.stdout.write('\n')
                 this.logger.warn(`Last run didn't insert any new rows in ${table.name}`);
                 break batch;
             }
-            this.logger.info(currentNbRows + ' / ' + table.maxLines);
+            process.stdout.clearLine(-1);  // clear current text
+            process.stdout.cursorTo(0);
+            process.stdout.write(currentNbRows + ' / ' + maxLines);
         }
+        process.stdout.write('\n')
     }
 
     private async after(table: Table) {
