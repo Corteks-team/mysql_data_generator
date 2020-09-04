@@ -6,7 +6,7 @@ import { Generator } from './generation/generator';
 import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
 import Customizer, { dummyCustomSchema } from './analysis/customizer';
 import * as path from 'path';
-import * as JSONC from 'jsonc-parser'
+import * as JSONC from 'jsonc-parser';
 
 const logger = getLogger();
 logger.level = "debug";
