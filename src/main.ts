@@ -74,19 +74,9 @@ class Main extends CliMainClass {
             }
             const customizer = new Customizer(customSchema, dbConnector, logger);
             customSchema = await customizer.customize(schema);
-            const tableService = new Generator(dbConnector, customSchema, logger);
+            const generator = new Generator(dbConnector, customSchema, logger);
             await dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
-            /** @todo: Remove deprecated warning */
-            let useDeprecatedLines = false;
-            for (const table of customSchema.tables) {
-                if (table.lines) {
-                    useDeprecatedLines = true;
-                    table.maxLines = table.lines;
-                }
-                await tableService.fill(table, this.reset, customSchema.settings.disableTriggers);
-            }
-            if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
-            /****************/
+            await generator.fillTables();
             dbConnector.cleanBackupTriggers();
         } catch (ex) {
             if (ex.code == 'ENOENT') {

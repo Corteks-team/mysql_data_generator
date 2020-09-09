@@ -43,10 +43,23 @@ export class Generator {
         }
     }
 
-    public async fill(table: Table, reset: boolean = false, globalDisableTriggers: boolean = false) {
+    public async fillTables(reset: boolean = false) {
+        /** @todo: Remove deprecated warning */
+        let useDeprecatedLines = false;
+        for (const table of this.schema.tables) {
+            if (table.lines) {
+                useDeprecatedLines = true;
+                table.maxLines = table.lines;
+            }
+        }
+        if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
+        /****************/
+    }
+
+    private async fill(table: Table, reset: boolean = false) {
         if (reset) await this.empty(table);
         this.logger.info('fill: ', table.name);
-        let handleTriggers = table.disableTriggers || (table.disableTriggers === undefined && globalDisableTriggers);
+        let handleTriggers = table.disableTriggers || (table.disableTriggers === undefined && this.schema.settings.disableTriggers);
         if (handleTriggers) await this.dbConnector.disableTriggers(table.name);
         await this.before(table);
         await this.generateData(table);
@@ -71,7 +84,7 @@ export class Generator {
         let maxLines = 0;
         if (table.addLines) {
             maxLines = currentNbRows + table.addLines;
-            if (table.maxLines) maxLines = Math.min(maxLines, table.maxLines);
+            if (table.maxLines !== undefined) maxLines = Math.min(maxLines, table.maxLines);
         }
         else if (table.maxLines) maxLines = table.maxLines;
         process.stdout.write(currentNbRows + ' / ' + maxLines);
@@ -188,7 +201,7 @@ export class Generator {
                 this.logger.warn(`Last run didn't insert any new rows in ${table.name}`);
                 break batch;
             }
-            process.stdout.clearLine(-1);  // clear current text
+            process.stdout.clearLine(-1);
             process.stdout.cursorTo(0);
             process.stdout.write(currentNbRows + ' / ' + maxLines);
         }
