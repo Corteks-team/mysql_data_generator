@@ -44,6 +44,7 @@ export class Generator {
     }
 
     public async fillTables(reset: boolean = false) {
+        this.beforeAll();
         /** @todo: Remove deprecated warning */
         let useDeprecatedLines = false;
         for (const table of this.schema.tables) {
@@ -54,6 +55,7 @@ export class Generator {
         }
         if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
         /****************/
+        this.afterAll();
     }
 
     private async fill(table: Table, reset: boolean = false) {
@@ -65,6 +67,22 @@ export class Generator {
         await this.generateData(table);
         await this.after(table);
         if (handleTriggers) await this.dbConnector.enableTriggers(table.name);
+    }
+
+    private async beforeAll() {
+        if (!this.schema.settings.beforeAll) return;
+
+        for (const query of this.schema.settings.beforeAll) {
+            await this.dbConnector.executeRawQuery(query);
+        }
+    }
+
+    private async afterAll() {
+        if (!this.schema.settings.afterAll) return;
+
+        for (const query of this.schema.settings.afterAll) {
+            await this.dbConnector.executeRawQuery(query);
+        }
     }
 
     private async before(table: Table) {

@@ -3,6 +3,8 @@ import { databaseEngines } from '../database-engines';
 
 export const dummyCustomSchema: CustomSchema = {
     settings: {
+        afterAll: [],
+        beforeAll: [],
         engine: databaseEngines.MARIADB,
         disableTriggers: false,
         ignoredTables: [],

@@ -83,6 +83,8 @@ interface ColumnOptions extends BaseColumnOptions {
 
 interface CustomSchema {
     settings: {
+        beforeAll: string[];
+        afterAll: string[];
         engine: DatabaseEngine;
         disableTriggers: boolean;
         ignoredTables: string[];
