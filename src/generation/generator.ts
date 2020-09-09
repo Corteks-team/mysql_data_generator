@@ -146,7 +146,7 @@ export class Generator {
                     }
                     if (column.foreignKey) {
                         const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
-                        row[column.name] = foreignKeys[i];
+                        if(foreignKeys.length > 0) row[column.name] = foreignKeys[i%foreignKeys.length];
                         continue;
                     }
                     switch (column.generator) {
