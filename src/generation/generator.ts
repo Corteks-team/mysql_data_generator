@@ -52,6 +52,7 @@ export class Generator {
                 useDeprecatedLines = true;
                 table.maxLines = table.lines;
             }
+            await this.fill(table, reset);
         }
         if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
         /****************/
