@@ -7,9 +7,16 @@ import { DatabaseConnectorBuilder, databaseEngine } from './database/database-co
 import Customizer, { dummyCustomSchema } from './analysis/customizer';
 import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
+import readline from 'readline';
+readline.emitKeypressEvents(process.stdin);
+process.stdin.setRawMode(true);
 
 const logger = getLogger();
 logger.level = "debug";
+
+logger.info('N: skip current table');
+logger.info('Q: quit');
+
 
 @CliMain
 class Main extends CliMainClass {
@@ -75,6 +82,16 @@ class Main extends CliMainClass {
             const customizer = new Customizer(customSchema, dbConnector, logger);
             customSchema = await customizer.customize(schema);
             const generator = new Generator(dbConnector, customSchema, logger);
+
+            process.stdin.on('keypress', (str, key) => {
+                if (key.name === 'q') {
+                    logger.info('Quit');
+                    process.exit();
+                } else if (key.name === 'n') {
+                    logger.info('Skipping...');
+                    generator.gotoNextTable();
+                }
+            });
             await dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
             await generator.fillTables();
             dbConnector.cleanBackupTriggers();

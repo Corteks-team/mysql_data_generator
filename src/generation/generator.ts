@@ -3,6 +3,7 @@ import { Logger } from 'log4js';
 
 export class Generator {
     private random: Random;
+    private continue: boolean = false;
 
     constructor(
         private dbConnector: DatabaseConnector,
@@ -14,6 +15,10 @@ export class Generator {
         } else {
             this.random = new Random(MersenneTwister19937.autoSeed());
         }
+    }
+
+    public gotoNextTable() {
+        this.continue = true;
     }
 
     private async empty(table: Table) {
@@ -223,6 +228,10 @@ export class Generator {
             process.stdout.clearLine(-1);
             process.stdout.cursorTo(0);
             process.stdout.write(currentNbRows + ' / ' + maxLines);
+            if (this.continue) {
+                this.continue = false;
+                break batch;
+            }
         }
         process.stdout.write('\n')
     }

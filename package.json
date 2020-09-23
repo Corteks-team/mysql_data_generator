@@ -50,7 +50,7 @@
     },
     "license": "GPL-3.0-or-later",
     "scripts": {
-        "dev": "nodemon",
+        "dev": "nodemon --no-stdin",
         "build": "tsc",
         "prepublishOnly": "tsc",
         "test": "jest"
