@@ -70,8 +70,8 @@ export class Generator {
         let handleTriggers = table.disableTriggers || (table.disableTriggers === undefined && this.schema.settings.disableTriggers);
         if (handleTriggers) await this.dbConnector.disableTriggers(table.name);
         await this.before(table);
-        await this.generateData(table);
-        await this.after(table);
+        const insertedRows = await this.generateData(table);
+        if (insertedRows) await this.after(table);
         if (handleTriggers) await this.dbConnector.enableTriggers(table.name);
     }
 
@@ -99,7 +99,7 @@ export class Generator {
         }
     }
 
-    private async generateData(table: Table) {
+    private async generateData(table: Table): Promise<number> {
         const tableForeignKeyValues: { [key: string]: any[]; } = {};
 
         let previousRunRows: number = -1;
@@ -111,6 +111,7 @@ export class Generator {
             if (table.maxLines !== undefined) maxLines = Math.min(maxLines, table.maxLines);
         }
         else if (table.maxLines) maxLines = table.maxLines;
+        let insertedRows = 0;
         process.stdout.write(currentNbRows + ' / ' + maxLines);
         batch: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
@@ -151,7 +152,7 @@ export class Generator {
                     }
                     if (column.foreignKey) {
                         const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
-                        if(foreignKeys.length > 0) row[column.name] = foreignKeys[i%foreignKeys.length];
+                        if (foreignKeys.length > 0) row[column.name] = foreignKeys[i % foreignKeys.length];
                         continue;
                     }
                     switch (column.generator) {
@@ -219,7 +220,8 @@ export class Generator {
                 }
                 rows.push(row);
             }
-            currentNbRows += await this.dbConnector.insert(table.name, rows);
+            insertedRows = await this.dbConnector.insert(table.name, rows);
+            currentNbRows += insertedRows;
             if (previousRunRows === currentNbRows) {
                 process.stdout.write('\n')
                 this.logger.warn(`Last run didn't insert any new rows in ${table.name}`);
@@ -234,6 +236,7 @@ export class Generator {
             }
         }
         process.stdout.write('\n')
+        return insertedRows;
     }
 
     private async after(table: Table) {
