@@ -3,5 +3,5 @@
         "src"
     ],
     "ext": "ts",
-    "exec": "node --inspect --require ts-node/register src/main.ts"
+    "exec": "node --max-old-space-size=4096 --inspect --require ts-node/register src/main.ts"
 }
