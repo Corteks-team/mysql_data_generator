@@ -1,5 +1,5 @@
 import { getLogger } from 'log4js';
-import { CliMain, CliMainClass, CliParameter } from '@corteks/clify';
+import { CliMain, CliMainClass, CliParameter, KeyPress } from '@corteks/clify';
 import * as fs from 'fs-extra';
 import { Analyser } from './analysis/analyser';
 import { Generator } from './generation/generator';
@@ -7,16 +7,9 @@ import { DatabaseConnectorBuilder, databaseEngine } from './database/database-co
 import Customizer, { dummyCustomSchema } from './analysis/customizer';
 import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
-import readline from 'readline';
-readline.emitKeypressEvents(process.stdin);
-process.stdin.setRawMode(true);
 
 const logger = getLogger();
 logger.level = "debug";
-
-logger.info('N: skip current table');
-logger.info('Q: quit');
-
 
 @CliMain
 class Main extends CliMainClass {
@@ -37,6 +30,8 @@ class Main extends CliMainClass {
 
     @CliParameter()
     private reset: boolean = false;
+
+    private generator: Generator | undefined = undefined;
 
     async main(): Promise<number> {
         if (!this.database) throw new Error('Please provide a valid database name');
@@ -81,19 +76,10 @@ class Main extends CliMainClass {
             }
             const customizer = new Customizer(customSchema, dbConnector, logger);
             customSchema = await customizer.customize(schema);
-            const generator = new Generator(dbConnector, customSchema, logger);
+            this.generator = new Generator(dbConnector, customSchema, logger);
 
-            process.stdin.on('keypress', (str, key) => {
-                if (key.name === 'q') {
-                    logger.info('Quit');
-                    process.exit();
-                } else if (key.name === 'n') {
-                    logger.info('Skipping...');
-                    generator.gotoNextTable();
-                }
-            });
             await dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
-            await generator.fillTables();
+            await this.generator.fillTables();
             dbConnector.cleanBackupTriggers();
         } catch (ex) {
             if (ex.code == 'ENOENT') {
@@ -106,5 +92,12 @@ class Main extends CliMainClass {
             await dbConnector.destroy();
         }
         return 0;
+    }
+
+    @KeyPress('n')
+    skipTable() {
+        if (!this.generator) return;
+        logger.info('Skipping...');
+        this.generator.gotoNextTable();
     }
 }
