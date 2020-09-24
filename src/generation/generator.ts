@@ -112,28 +112,30 @@ export class Generator {
         }
         else if (table.maxLines) maxLines = table.maxLines;
         let insertedRows = 0;
+
+        let deltaRows = maxLines - currentNbRows;
+        try {
+            await this.getForeignKeyValues(table, tableForeignKeyValues, deltaRows);
+        } catch (ex) {
+            process.stdout.write('\n');
+            this.logger.warn(ex.message);
+        }
+
+        let currentTableRow = 0;
         process.stdout.write(currentNbRows + ' / ' + maxLines);
-        batch: while (currentNbRows < maxLines) {
+        TABLE_LOOP: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
             const rows = [];
             const runRows = Math.min(1000, maxLines - currentNbRows);
 
-            try {
-                await this.getForeignKeyValues(table, tableForeignKeyValues, runRows);
-            } catch (ex) {
-                process.stdout.write('\n')
-                this.logger.warn(ex.message);
-                break batch;
-            }
-
-            for (let i = 0; i < runRows; i++) {
+            for (let currentBatchRow = 0; currentBatchRow < runRows; currentBatchRow++) {
                 const row: { [key: string]: any; } = {};
                 for (var c = 0; c < table.columns.length; c++) {
                     const column = table.columns[c];
                     if (column.options.autoIncrement) continue;
                     if (column.values) {
-                        let parsedValues: ParsedValues = []
+                        let parsedValues: ParsedValues = [];
                         let values: Values = column.values;
                         if (typeof values === 'string') {
                             values = this.schema.settings.values[values] as ParsedValues | ValuesWithRatio;
@@ -145,14 +147,14 @@ export class Generator {
                                 parsedValues = parsedValues.concat(arr);
                             });
                         } else {
-                            parsedValues = values
+                            parsedValues = values;
                         }
                         row[column.name] = this.random.pick(parsedValues);
                         continue;
                     }
                     if (column.foreignKey) {
                         const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
-                        if (foreignKeys.length > 0) row[column.name] = foreignKeys[i % foreignKeys.length];
+                        if (foreignKeys.length > 0) row[column.name] = foreignKeys[currentTableRow % foreignKeys.length];
                         continue;
                     }
                     switch (column.generator) {
@@ -219,23 +221,24 @@ export class Generator {
                     if (column.options.nullable && this.random.realZeroToOneExclusive() <= 0.1) row[column.name] = null;
                 }
                 rows.push(row);
+                currentTableRow++;
             }
             insertedRows = await this.dbConnector.insert(table.name, rows);
             currentNbRows += insertedRows;
             if (previousRunRows === currentNbRows) {
-                process.stdout.write('\n')
+                process.stdout.write('\n');
                 this.logger.warn(`Last run didn't insert any new rows in ${table.name}`);
-                break batch;
+                break TABLE_LOOP;
             }
             process.stdout.clearLine(-1);
             process.stdout.cursorTo(0);
             process.stdout.write(currentNbRows + ' / ' + maxLines);
             if (this.continue) {
                 this.continue = false;
-                break batch;
+                break TABLE_LOOP;
             }
         }
-        process.stdout.write('\n')
+        process.stdout.write('\n');
         return insertedRows;
     }
 
