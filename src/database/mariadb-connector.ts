@@ -208,6 +208,7 @@ export class MariaDBConnector implements DatabaseConnector {
     }
 
     async insert(table: string, rows: any[]): Promise<number> {
+        if (rows.length === 0) return 0;
         const query = await this.dbConnection(table)
             .insert(rows)
             .toQuery()
