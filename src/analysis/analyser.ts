@@ -119,8 +119,10 @@ export class Analyser {
                 case 'blob':
                 case 'mediumblob': // 16777215
                 case 'longblob': // 4,294,967,295
+                    break;
                 case 'set':
                 case 'enum':
+                    options.max = column.NUMERIC_PRECISION;
                     break;
             }
             return {
