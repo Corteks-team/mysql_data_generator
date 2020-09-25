@@ -2,16 +2,24 @@ import 'reflect-metadata';
 import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter, KeyPress } from '@corteks/clify';
 import * as fs from 'fs-extra';
-import { Generator } from './generation/generator';
 import { DatabaseConnectorBuilder, DatabaseConnector, DatabaseEngines } from './database/database-connector-builder';
 import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
 import { Schema } from './schema.class';
 import { CustomSchema } from './custom-schema.class';
 import { CustomizedSchema } from './customized-schema.class';
+import { Generator, ProgressEvent } from './generation/generator';
+import colors from 'colors';
+import cliProgress, { SingleBar } from 'cli-progress';
 
 const logger = getLogger();
 logger.level = "debug";
+
+async function sleep(s: number) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, s * 1000);
+    });
+}
 
 @CliMain
 class Main extends CliMainClass {
@@ -85,6 +93,7 @@ class Main extends CliMainClass {
     }
 
     async generateData() {
+        if (!this.generator) return;
         if (!this.dbConnector) throw new Error('DB connection not ready');
         let schema: Schema = await Schema.fromJSON(fs.readJSONSync(path.join('settings', 'schema.json')));
         let customSchema: CustomSchema = new CustomSchema();
@@ -94,7 +103,26 @@ class Main extends CliMainClass {
             logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
         }
         const customizedSchema = CustomizedSchema.create(schema, customSchema);
-        this.generator = new Generator(this.dbConnector, customizedSchema, logger);
+        let previousEvent: ProgressEvent = {} as any;
+        let currentProgress: SingleBar;
+        this.generator.on('progress', (event: ProgressEvent) => {
+            if (event.currentTable !== previousEvent.currentTable) {
+                if (currentProgress) currentProgress.stop();
+                console.log(colors.green(event.currentTable));
+            }
+            if (event.step !== previousEvent.step) {
+                if (currentProgress) currentProgress.stop();
+                currentProgress = new cliProgress.SingleBar({
+                    format: `${event.step} | ${colors.cyan('{bar}')} | {percentage}% || {value}/{total}`,
+                    stopOnComplete: true,
+                });
+                currentProgress.start(event.max, event.currentValue);
+            } else {
+                if (currentProgress) currentProgress.update(event.currentValue);
+            }
+            previousEvent = event;
+        });
+        this.generator = new Generator(this.dbConnector, customizedSchema);
 
         await this.dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
         await this.generator.fillTables(this.reset);
