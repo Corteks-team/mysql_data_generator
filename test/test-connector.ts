@@ -1,14 +1,9 @@
-import { DatabaseConnector } from '../src/database/database-connector-builder';
-import { Table } from '../src/table-descriptor.interface';
-import { MySQLColumn } from '../src/database/mysql-column';
-
-
 export class TestConnector implements DatabaseConnector {
-    init=jest.fn();
-    backupTriggers= jest.fn();
-    cleanBackupTriggers=jest.fn();
-    disableTriggers=jest.fn();
-    enableTriggers=jest.fn();
+    init = jest.fn();
+    backupTriggers = jest.fn();
+    cleanBackupTriggers = jest.fn();
+    disableTriggers = jest.fn();
+    enableTriggers = jest.fn();
     countLines = jest.fn(async () => 0);
     destroy = jest.fn();
     emptyTable = jest.fn();

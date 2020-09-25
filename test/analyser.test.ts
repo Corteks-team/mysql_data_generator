@@ -1,92 +1,31 @@
 import { Analyser } from '../src/analysis/analyser';
 import { TestConnector } from './test-connector';
-import { Schema } from '../src/schema.interface';
 import { databaseEngines } from '../src/database-engines';
 import Customizer from '../src/analysis/customizer';
-import { Table } from '../src/table-descriptor.interface';
 import { logger } from './index';
-import { MySQLColumn } from '../src/database/mysql-column';
-import { Column } from '../src/column';
 let testConnector: TestConnector;
-let dummySchema: Schema;
+let dummySchema: CustomSchema;
 let testCustomizer: Customizer;
 describe('Analyser', () => {
     beforeEach(() => {
         testConnector = new TestConnector();
-        dummySchema = {
-            settings: {
-                engine: databaseEngines.MARIADB,
-                disableTriggers: false,
-                ignoredTables: [],
-                tablesToFill: [],
-                options: [],
-                values: {}
-            },
-            tables: [],
-        };
-        testCustomizer = new Customizer(dummySchema, logger);
-        jest.spyOn(testCustomizer, 'customizeTable').mockImplementation((table: Table) => table);
     });
-    it('handle deprecated parameter lines', async () => {
-        dummySchema.tables = [{
-            name: 'table1',
-            disableTriggers: false,
-            lines: 100,
-            addLines: 0,
-            columns: [],
-            before: undefined,
-            after: undefined,
-            referencedTables: []
-        }];
-        const analyser = new Analyser(testConnector, dummySchema, testCustomizer, logger);
+    it('analyse all tables', async () => {
+        const analyser = new Analyser(testConnector, logger);
 
-        expect(dummySchema.tables[0].maxLines).toEqual(100);
-    });
-    it('analyse all tables if nothing specified', async () => {
-        const analyser = new Analyser(testConnector, dummySchema, testCustomizer, logger);
-
-        testConnector.getTablesInformation = jest.fn(async (tablesToFill, ignoredTables) => [{
+        testConnector.getTablesInformation = jest.fn(async () => [{
             name: 'table1',
-            lines: 0,
+            maxLines: 0,
             referencedTables: []
         }]);
 
         const json = await analyser.analyse();
 
-        expect(testConnector.getTablesInformation).toHaveBeenCalledWith(dummySchema.settings.ignoredTables, dummySchema.settings.tablesToFill);
+        expect(testConnector.getTablesInformation).toHaveBeenCalled();
         expect(json.tables).toHaveLength(1);
     });
-    it('analyse only tablesToFill', async () => {
-        dummySchema.settings.tablesToFill = ['table1'];
-        const analyser = new Analyser(testConnector, dummySchema, testCustomizer, logger);
-
-        testConnector.getTablesInformation = jest.fn(async (tablesToFill, ignoredTables) => [{
-            name: 'table1',
-            lines: 0,
-            referencedTables: []
-        }]);
-
-        const json = await analyser.analyse();
-
-        expect(testConnector.getTablesInformation).toHaveBeenCalledWith(dummySchema.settings.ignoredTables, dummySchema.settings.tablesToFill);
-        expect(json.settings.tablesToFill).toHaveLength(1);
-        expect(json.settings.tablesToFill[0]).toBe('table1');
-    });
     it('handle all data types', async () => {
-        dummySchema = {
-            settings: {
-                ignoredTables: []
-            },
-            tables: [
-                {
-                    name: 'table1',
-                    columns: [
-                        { name: 'enum', generator: 'enum', values: ['value1', 'value2'] } as Column,
-                    ]
-                } as Table
-            ]
-        } as any as Schema;
-        const analyser = new Analyser(testConnector, dummySchema, testCustomizer, logger);
+        const analyser = new Analyser(testConnector, logger);
 
         testConnector.getTablesInformation = jest.fn(async (tablesToFill, ignoredTables) => [{
             name: 'table1',
@@ -118,41 +57,14 @@ describe('Analyser', () => {
 
         const json = await analyser.analyse();
 
-        expect(testConnector.getTablesInformation).toHaveBeenCalledWith(dummySchema.settings.ignoredTables, dummySchema.settings.tablesToFill);
+        expect(testConnector.getTablesInformation).toHaveBeenCalled();
         expect(json.tables).toHaveLength(1);
     });
     it('handle foreign keys', async () => {
-        dummySchema = {
-            settings: {
-                engine: databaseEngines.MARIADB,
-                disableTriggers: false,
-                ignoredTables: [],
-                options: [],
-                tablesToFill: [],
-                values: {}
-            },
-            tables: [
-                {
-                    name: 'table1',
-                    addLines: 1,
-                    columns: [{
-                        name: 'fk',
-                        generator: 'int',
-                        foreignKey: 'table2.id'
-                    }],
-                    referencedTables: []
-                },
-                {
-                    name: 'table2',
-                    addLines: 1,
-                    columns: [],
-                    referencedTables: []
-                }
-            ] as any
-        };
-        const analyser = new Analyser(testConnector, dummySchema, testCustomizer, logger);
 
-        testConnector.getTablesInformation = jest.fn(async (tablesToFill, ignoredTables) => [
+        const analyser = new Analyser(testConnector, logger);
+
+        testConnector.getTablesInformation = jest.fn(async () => [
             {
                 name: 'table1',
                 lines: 0,
@@ -188,7 +100,7 @@ describe('Analyser', () => {
 
         const json = await analyser.analyse();
 
-        expect(testConnector.getTablesInformation).toHaveBeenCalledWith(dummySchema.settings.ignoredTables, dummySchema.settings.tablesToFill);
+        expect(testConnector.getTablesInformation).toHaveBeenCalled();
         expect(json.tables).toHaveLength(2);
     });
 });

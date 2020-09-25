@@ -1,14 +1,19 @@
 import Customizer from '../src/analysis/customizer';
-import { Schema } from '../src/schema.interface';
 import { databaseEngines } from '../src/database-engines';
-import { Table } from '../src/table-descriptor.interface';
 import { logger } from './index';
+import { TestConnector } from './test-connector';
 
-let dummySchema: Schema;
+let schema: Schema;
+let customSchema: CustomSchema;
 describe('Customizer', () => {
     beforeEach(() => {
-        dummySchema = {
+        schema = {
+            tables: []
+        };
+        customSchema = {
             settings: {
+                beforeAll: [],
+                afterAll: [],
                 engine: databaseEngines.MARIADB,
                 disableTriggers: false,
                 ignoredTables: [],
@@ -20,60 +25,89 @@ describe('Customizer', () => {
         };
     });
     it('overrides options with global settings', async () => {
-        dummySchema.settings.options.push({
+        customSchema.settings.options.push({
             dataTypes: ['int'],
             options: {
                 autoIncrement: true,
             } as any
         });
-        const customizer = new Customizer(dummySchema, logger);
-        const table: Table = {
-            name: 'table1',
-            columns: [
-                {
-                    name: 'column1',
-                    generator: 'int',
-                    options: {
-                        autoIncrement: false,
-                    } as any
-                }
-            ]
-        } as any;
-        customizer.customizeTable(table);
-        expect(table.columns).toHaveLength(1);
-        expect(table.columns[0].options.autoIncrement).toBeTruthy();
+        const customizer = new Customizer(customSchema, logger);
+        schema = {
+            tables: [{
+                name: 'table1',
+                disableTriggers: false,
+                maxLines: 0,
+                referencedTables: [],
+                columns: [
+                    {
+                        name: 'column1',
+                        generator: 'int',
+                        options: {
+                            autoIncrement: false,
+                        } as ColumnOptions
+                    }
+                ]
+            }]
+        };
+        const result = await customizer.customize(schema);
+        expect(result.tables[0].columns).toHaveLength(1);
+        expect(result.tables[0].columns[0].options.autoIncrement).toBeTruthy();
     });
     it('overrides table options', async () => {
-        dummySchema.tables = [{
+        customSchema.tables = [{
             name: 'table1',
             maxLines: 100,
         } as any];
-        const customizer = new Customizer(dummySchema, logger);
-        const table: Table = {
-            name: 'table1',
-            maxLines: 0,
-            columns: []
-        } as any;
-        customizer.customizeTable(table);
-        expect(table.maxLines).toBe(100);
+        const customizer = new Customizer(customSchema, logger);
+        schema = {
+            tables: [{
+                name: 'table1',
+                disableTriggers: false,
+                maxLines: 0,
+                referencedTables: [],
+                columns: [
+                    {
+                        name: 'column1',
+                        generator: 'int',
+                        options: {
+                            autoIncrement: false,
+                        } as ColumnOptions
+                    }
+                ]
+            }]
+        };
+        const result = await customizer.customize(schema);
+        expect(result.tables[0].maxLines).toBe(100);
     });
     it('handle missing custom table', async () => {
-        const customizer = new Customizer(dummySchema, logger);
-        const table: Table = {
-            name: 'table1',
-            maxLines: 0,
-            columns: [{ name: 'test' }]
-        } as any;
-        customizer.customizeTable(table);
-        expect(table.maxLines).toBe(0);
+        const customizer = new Customizer(customSchema, logger);
+        schema = {
+            tables: [{
+                name: 'table1',
+                disableTriggers: false,
+                maxLines: 0,
+                referencedTables: [],
+                columns: [
+                    {
+                        name: 'column1',
+                        generator: 'int',
+                        options: {
+                            autoIncrement: false,
+                        } as ColumnOptions
+                    }
+                ]
+            }]
+        };
+        const result = await customizer.customize(schema);
+        expect(result.tables[0].maxLines).toBe(0);
     });
     it('overrides column options', async () => {
-        dummySchema.tables = [{
+        customSchema.tables = [{
             name: 'table1',
             maxLines: 100,
             columns: [
                 {
-                    name: 'col1',
+                    name: 'column1',
                     options: {
                         max: 100
                     },
@@ -82,20 +116,26 @@ describe('Customizer', () => {
                 }
             ]
         } as any];
-        const customizer = new Customizer(dummySchema, logger);
-        const table: Table = {
-            name: 'table1',
-            maxLines: 0,
-            columns: [
-                {
-                    name: 'col1',
-                    options: {
-                        max: 0
+        const customizer = new Customizer(customSchema, logger);
+        schema = {
+            tables: [{
+                name: 'table1',
+                disableTriggers: false,
+                maxLines: 0,
+                referencedTables: [],
+                columns: [
+                    {
+                        name: 'column1',
+                        generator: 'int',
+                        options: {
+                            autoIncrement: false,
+                            max: 0
+                        } as ColumnOptions
                     }
-                }
-            ]
-        } as any;
-        customizer.customizeTable(table);
-        expect(table.columns[0].options.max).toBe(100);
+                ]
+            }]
+        };
+        const result = await customizer.customize(schema);
+        expect(result.tables[0].columns[0].options.max).toBe(100);
     });
 });

@@ -1,64 +1,78 @@
 import { TestConnector } from './test-connector';
-import { Schema } from '../src/schema.interface';
 import { databaseEngines } from '../src/database-engines';
 import { Generator } from '../src/generation/generator';
 import { logger } from './index';
-import { Table } from '../src/table-descriptor.interface';
 
 let testConnector: TestConnector;
-let dummySchema: Schema;
+let dummySchema: CustomSchema;
 describe('Generator', () => {
     beforeEach(() => {
         testConnector = new TestConnector();
         dummySchema = {
             settings: {
+                beforeAll: [],
+                afterAll: [],
                 engine: databaseEngines.MARIADB,
                 disableTriggers: false,
                 ignoredTables: [],
                 tablesToFill: [],
+                values: {},
                 options: [],
-                values: {}
             },
             tables: [],
         };
     });
     it('should empty table', async () => {
+        dummySchema.tables = [{
+            name: 'test'
+        } as Table];
+
         const generator = new Generator(
             testConnector,
             dummySchema,
             logger
         );
 
-        const table = { name: 'test' } as Table;
-        await generator.fill(table, true);
+
+        await generator.fillTables(true);
 
         expect(testConnector.emptyTable).toHaveBeenCalled();
 
     });
     it('launch before script', async () => {
+        dummySchema.tables = [{
+            name: 'test',
+            before: ['query']
+        } as Table];
+
         const generator = new Generator(
             testConnector,
             dummySchema,
             logger
         );
-
-        const before = ['query'];
-        const table: Table = { name: 'test', before } as any;
-        await generator.fill(table, true);
+        await generator.fillTables(true);
 
         expect(testConnector.executeRawQuery).toHaveBeenCalledWith('query');
 
     });
     it('launch after script', async () => {
+        dummySchema.tables = [{
+            name: 'test',
+            maxLines: 100,
+            after: ['query'],
+            columns: [],
+            disableTriggers: false,
+            referencedTables: []
+        }];
+
+        testConnector.insert = jest.fn(async (table, rows) => 100);
+
         const generator = new Generator(
             testConnector,
             dummySchema,
             logger
         );
-
-        const after = ['query'];
-        const table: Table = { name: 'test', after } as any;
-        await generator.fill(table, true);
+        await generator.fillTables(true);
 
         expect(testConnector.executeRawQuery).toHaveBeenCalledWith('query');
     });
