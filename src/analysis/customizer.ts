@@ -18,7 +18,6 @@ export const dummyCustomSchema: CustomSchema = {
 export default class Customizer {
     constructor(
         private customSchema: CustomSchema,
-        private dbConnector: DatabaseConnector,
         private logger: Logger
     ) { }
 
@@ -34,7 +33,6 @@ export default class Customizer {
 
         tables = await Promise.all(tables.map(async (table) => {
             await this.customizeTable(table);
-            await this.extractForeignKeys(table);
             return table;
         }));
         this.customSchema.tables = this.orderTablesByForeignKeys(tables);
@@ -62,38 +60,15 @@ export default class Customizer {
         }
         table.columns.forEach((column) => {
             const customColumn = customTable?.columns?.find(c => c.name.toLowerCase() === column.name.toLowerCase());
-            if (customColumn?.foreignKey) column.foreignKey = customColumn.foreignKey;
+            if (customColumn?.foreignKey) {
+                column.foreignKey = customColumn.foreignKey;
+                table.referencedTables.push(column.foreignKey.table);
+            }
             if (customColumn?.values) column.values = customColumn.values;
             const globalSetting = this.customSchema.settings.options.find(o => o.dataTypes.includes(column.generator));
             column.options = Object.assign({}, column.options, customColumn?.options, globalSetting?.options);
         });
     }
-
-    private extractForeignKeys = async (table: Table) => {
-        const foreignKeys = await this.dbConnector.getForeignKeys(table);
-        const customTable: Table = Object.assign({
-            name: '',
-            columns: [],
-            maxLines: 0,
-        }, this.customSchema.tables.find(t => t.name.toLowerCase() === table.name.toLowerCase()));
-        for (let c = 0; c < table.columns.length; c++) {
-            const column = table.columns[c];
-            const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
-            if (match) {
-                column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
-                column.options.unique = column.options.unique || match.uniqueIndex;
-            }
-            const customColumn = customTable.columns.find(cc => cc.name.toLowerCase() === column.name.toLowerCase());
-            if (customColumn) {
-                column.options = Object.assign({}, column.options, customColumn.options);
-                if (customColumn.foreignKey) column.foreignKey = customColumn.foreignKey;
-                if (customColumn.values) column.values = customColumn.values;
-            }
-            if (column.foreignKey) {
-                table.referencedTables.push(column.foreignKey.table);
-            }
-        }
-    };
 
     private orderTablesByForeignKeys(tables: Table[]) {
         let sortedTables: Table[] = [];

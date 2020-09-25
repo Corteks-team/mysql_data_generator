@@ -74,7 +74,7 @@ class Main extends CliMainClass {
             } catch (ex) {
                 logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
             }
-            const customizer = new Customizer(customSchema, dbConnector, logger);
+            const customizer = new Customizer(customSchema, logger);
             customSchema = await customizer.customize(schema);
             this.generator = new Generator(dbConnector, customSchema, logger);
 
