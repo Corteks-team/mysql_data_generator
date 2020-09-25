@@ -1,11 +1,7 @@
 import { Analyser } from '../src/analysis/analyser';
 import { TestConnector } from './test-connector';
-import { databaseEngines } from '../src/database-engines';
-import Customizer from '../src/analysis/customizer';
 import { logger } from './index';
 let testConnector: TestConnector;
-let dummySchema: CustomSchema;
-let testCustomizer: Customizer;
 describe('Analyser', () => {
     beforeEach(() => {
         testConnector = new TestConnector();
