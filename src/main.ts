@@ -79,7 +79,7 @@ class Main extends CliMainClass {
             this.generator = new Generator(dbConnector, customSchema, logger);
 
             await dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
-            await this.generator.fillTables();
+            await this.generator.fillTables(this.reset);
             dbConnector.cleanBackupTriggers();
         } catch (ex) {
             if (ex.code == 'ENOENT') {
