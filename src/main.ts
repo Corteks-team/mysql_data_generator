@@ -15,12 +15,6 @@ import cliProgress, { SingleBar } from 'cli-progress';
 const logger = getLogger();
 logger.level = "debug";
 
-async function sleep(s: number) {
-    return new Promise((resolve) => {
-        setTimeout(resolve, s * 1000);
-    });
-}
-
 @CliMain
 class Main extends CliMainClass {
     @CliParameter({ alias: 'db', demandOption: true, description: 'database', })
