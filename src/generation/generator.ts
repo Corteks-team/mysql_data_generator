@@ -110,12 +110,11 @@ export class Generator {
         try {
             await this.getForeignKeyValues(table, tableForeignKeyValues, deltaRows);
         } catch (ex) {
-            process.stdout.write('\n');
             this.logger.warn(ex.message);
         }
 
         let currentTableRow = 0;
-        process.stdout.write(currentNbRows + ' / ' + maxLines);
+        this.logger.info(currentNbRows + ' / ' + maxLines);
         TABLE_LOOP: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
@@ -219,19 +218,15 @@ export class Generator {
             insertedRows = await this.dbConnector.insert(table.name, rows);
             currentNbRows += insertedRows;
             if (previousRunRows === currentNbRows) {
-                process.stdout.write('\n');
                 this.logger.warn(`Last run didn't insert any new rows in ${table.name}`);
                 break TABLE_LOOP;
             }
-            process.stdout.clearLine(-1);
-            process.stdout.cursorTo(0);
-            process.stdout.write(currentNbRows + ' / ' + maxLines);
+            this.logger.info(currentNbRows + ' / ' + maxLines);
             if (this.continue) {
                 this.continue = false;
                 break TABLE_LOOP;
             }
         }
-        process.stdout.write('\n');
         return insertedRows;
     }
 
