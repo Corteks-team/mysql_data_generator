@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { getLogger } from 'log4js';
-import { CliMain, CliMainClass, CliParameter, KeyPress } from '@corteks/clify';
+import { CliMain, CliMainClass, CliParameter, KeyPress, Modifiers } from '@corteks/clify';
 import * as fs from 'fs-extra';
 import { DatabaseConnectorBuilder, DatabaseConnector, DatabaseEngines } from './database/database-connector-builder';
 import * as path from 'path';
@@ -129,7 +129,7 @@ class Main extends CliMainClass {
         this.dbConnector.cleanBackupTriggers();
     }
 
-    @KeyPress('n')
+    @KeyPress('n', Modifiers.NONE, 'Skip the current table. Only works during data generation phase.')
     skipTable() {
         if (!this.generator) return;
         logger.info('Skipping...');
