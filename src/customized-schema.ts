@@ -4,7 +4,7 @@ export class CustomizedSchema {
     public settings: {
         beforeAll: string[],
         afterAll: string[],
-        engine: DatabaseEngine,
+        engine: DatabaseEngines,
         disableTriggers: boolean,
         values: { [key: string]: any; };
         seed?: number;

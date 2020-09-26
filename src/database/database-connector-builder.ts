@@ -9,7 +9,7 @@ export class DatabaseConnectorBuilder {
     private password: string = '';
 
     constructor(
-        private engine: databaseEngines,
+        private engine: DatabaseEngines,
     ) { }
 
     public async build(): Promise<DatabaseConnector> {

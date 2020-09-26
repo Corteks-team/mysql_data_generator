@@ -3,7 +3,7 @@ type ParsedValues = string[];
 type ValuesWithRatio = { [key: string]: number; };
 type Values = ValuePointer | ParsedValues | ValuesWithRatio;
 
-type DatabaseEngine = 'MariaDB';
+type DatabaseEngines = 'MariaDB';
 
 interface MySQLColumn {
     TABLE_CATALOG: string;
@@ -89,7 +89,7 @@ interface CustomSchema {
     settings: {
         beforeAll: string[];
         afterAll: string[];
-        engine: DatabaseEngine;
+        engine: DatabaseEngines;
         disableTriggers: boolean;
         ignoredTables: string[];
         tablesToFill: string[];

@@ -3,10 +3,11 @@ import { CliMain, CliMainClass, CliParameter, KeyPress } from '@corteks/clify';
 import * as fs from 'fs-extra';
 import { Analyser } from './analysis/analyser';
 import { Generator } from './generation/generator';
-import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
+import { DatabaseConnectorBuilder } from './database/database-connector-builder';
 import Customizer, { dummyCustomSchema } from './analysis/customizer';
 import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
+import { databaseEngines } from './database-engines';
 
 const logger = getLogger();
 logger.level = "debug";
@@ -36,7 +37,7 @@ class Main extends CliMainClass {
     async main(): Promise<number> {
         if (!this.database) throw new Error('Please provide a valid database name');
         const [host, port] = this.host.split(':');
-        const dbConnectorBuilder = new DatabaseConnectorBuilder(databaseEngine.MariaDB);
+        const dbConnectorBuilder = new DatabaseConnectorBuilder(databaseEngines.MARIADB);
         let dbConnector: DatabaseConnector;
         try {
             dbConnector = await dbConnectorBuilder

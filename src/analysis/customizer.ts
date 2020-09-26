@@ -1,6 +1,6 @@
 import { Logger } from 'log4js';
-import { databaseEngines } from '../database-engines';
 import { CustomizedSchema, CustomizedTable } from '../customized-schema';
+import { databaseEngines } from '../database-engines';
 
 export const dummyCustomSchema: CustomSchema = {
     settings: {
