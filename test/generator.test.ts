@@ -1,9 +1,7 @@
 import { TestConnector } from './test-connector';
 import { Generator } from '../src/generation/generator';
 import { CustomizedSchema, CustomizedTable } from '../src/customized-schema.class';
-import { getLogger } from 'log4js';
 
-const logger = getLogger();
 let testConnector: TestConnector;
 describe('Generator', () => {
     beforeEach(() => {
@@ -18,8 +16,7 @@ describe('Generator', () => {
 
         const generator = new Generator(
             testConnector,
-            customizedSchema,
-            logger
+            customizedSchema
         );
 
         await generator.fillTables(true);
@@ -37,8 +34,7 @@ describe('Generator', () => {
 
         const generator = new Generator(
             testConnector,
-            customizedSchema,
-            logger
+            customizedSchema
         );
         await generator.fillTables(true);
 
@@ -57,8 +53,7 @@ describe('Generator', () => {
 
         const generator = new Generator(
             testConnector,
-            customizedSchema,
-            logger
+            customizedSchema
         );
         await generator.fillTables(true);
 
