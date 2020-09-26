@@ -27,7 +27,7 @@ export class Analyser {
             });
 
         table.columns = columns.map((column: MySQLColumn) => {
-            const options: ColumnOptions = {
+            const options: Column['options'] = {
                 max: 0,
                 min: 0,
                 autoIncrement: false,
