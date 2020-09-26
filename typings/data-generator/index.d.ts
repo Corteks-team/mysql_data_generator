@@ -1,10 +1,9 @@
-type ValuePointer = string
-type ParsedValues = string[]
-type ValuesWithRatio = { [key: string]: number; }
+type ValuePointer = string;
+type ParsedValues = string[];
+type ValuesWithRatio = { [key: string]: number; };
 type Values = ValuePointer | ParsedValues | ValuesWithRatio;
 
-type DatabaseEngine = 'MariaDB'
-
+type DatabaseEngine = 'MariaDB';
 
 interface MySQLColumn {
     TABLE_CATALOG: string;
@@ -55,30 +54,35 @@ interface Trigger {
     DATABASE_COLLATION: string,
 }
 
+interface Schema {
+    tables: Table[];
+}
+
+interface Table {
+    name: string;
+    columns: Column[];
+    referencedTables: string[];
+}
+
 interface Column {
     name: string;
     generator: string;
-    options: ColumnOptions;
+    options: {
+        nullable: boolean;
+        unique: boolean;
+        autoIncrement: boolean;
+        unsigned: boolean;
+        min: number;
+        max: number;
+        minDate?: string;
+        maxDate?: string | undefined;
+    };
     foreignKey?: {
         table: string;
         column: string;
         where?: string;
     };
     values?: Values;
-}
-
-interface BaseColumnOptions {
-    nullable: boolean;
-    unique: boolean;
-    autoIncrement: boolean;
-    unsigned: boolean;
-}
-
-interface ColumnOptions extends BaseColumnOptions {
-    min: number;
-    max: number;
-    minDate?: string;
-    maxDate?: string | undefined;
 }
 
 interface CustomSchema {
@@ -93,12 +97,12 @@ interface CustomSchema {
         options: Array<
             {
                 dataTypes: string[],
-                options: ColumnOptions;
+                options: Partial<Column['options']>;
             }
         >;
         seed?: number;
     };
-    tables: Table[],
+    tables: CustomTable[],
 }
 
 interface ForeignKey {
@@ -125,27 +129,15 @@ interface DatabaseConnector {
     enableTriggers(table: string): Promise<void>;
 }
 
-interface Schema {
-    tables: Table[];
-}
-
-type RequireAtLeastOne<T, Keys extends keyof T = keyof T> =
-    Pick<T, Exclude<keyof T, Keys>>
-    & {
-        [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>
-    }[Keys];
+type CustomTable = { name: string; } & Partial<Table> & BaseTable;
 
 interface BaseTable {
     name: string;
     /** @deprecated: This parameter has been renamed maxLines */
     lines?: number;
-    columns: Column[];
     before?: string[];
     after?: string[];
     maxLines?: number;
     addLines?: number;
-    referencedTables: string[];
-    disableTriggers: boolean;
+    disableTriggers?: boolean;
 }
-
-type Table = RequireAtLeastOne<BaseTable, 'maxLines' | 'addLines'>;
