@@ -3,10 +3,11 @@ import { CliMain, CliMainClass, CliParameter, KeyPress } from '@corteks/clify';
 import * as fs from 'fs-extra';
 import { Analyser } from './analysis/analyser';
 import { Generator } from './generation/generator';
-import { DatabaseConnectorBuilder, databaseEngine } from './database/database-connector-builder';
+import { DatabaseConnectorBuilder } from './database/database-connector-builder';
 import Customizer, { dummyCustomSchema } from './analysis/customizer';
 import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
+import { databaseEngines } from './database-engines';
 
 const logger = getLogger();
 logger.level = "debug";
@@ -36,7 +37,7 @@ class Main extends CliMainClass {
     async main(): Promise<number> {
         if (!this.database) throw new Error('Please provide a valid database name');
         const [host, port] = this.host.split(':');
-        const dbConnectorBuilder = new DatabaseConnectorBuilder(databaseEngine.MariaDB);
+        const dbConnectorBuilder = new DatabaseConnectorBuilder(databaseEngines.MARIADB);
         let dbConnector: DatabaseConnector;
         try {
             dbConnector = await dbConnectorBuilder
@@ -75,8 +76,8 @@ class Main extends CliMainClass {
                 logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
             }
             const customizer = new Customizer(customSchema, logger);
-            customSchema = await customizer.customize(schema);
-            this.generator = new Generator(dbConnector, customSchema, logger);
+            const customizedSchema = await customizer.customize(schema);
+            this.generator = new Generator(dbConnector, customizedSchema, logger);
 
             await dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
             await this.generator.fillTables(this.reset);

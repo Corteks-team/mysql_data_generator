@@ -1,7 +1,6 @@
 import Customizer from '../src/analysis/customizer';
 import { databaseEngines } from '../src/database-engines';
 import { logger } from './index';
-import { TestConnector } from './test-connector';
 
 let schema: Schema;
 let customSchema: CustomSchema;
@@ -35,8 +34,6 @@ describe('Customizer', () => {
         schema = {
             tables: [{
                 name: 'table1',
-                disableTriggers: false,
-                maxLines: 0,
                 referencedTables: [],
                 columns: [
                     {
@@ -44,7 +41,12 @@ describe('Customizer', () => {
                         generator: 'int',
                         options: {
                             autoIncrement: false,
-                        } as ColumnOptions
+                            max: 10,
+                            min: 10,
+                            nullable: true,
+                            unique: true,
+                            unsigned: true
+                        }
                     }
                 ]
             }]
@@ -62,8 +64,6 @@ describe('Customizer', () => {
         schema = {
             tables: [{
                 name: 'table1',
-                disableTriggers: false,
-                maxLines: 0,
                 referencedTables: [],
                 columns: [
                     {
@@ -71,7 +71,12 @@ describe('Customizer', () => {
                         generator: 'int',
                         options: {
                             autoIncrement: false,
-                        } as ColumnOptions
+                            max: 10,
+                            min: 10,
+                            nullable: true,
+                            unique: true,
+                            unsigned: true
+                        }
                     }
                 ]
             }]
@@ -84,8 +89,6 @@ describe('Customizer', () => {
         schema = {
             tables: [{
                 name: 'table1',
-                disableTriggers: false,
-                maxLines: 0,
                 referencedTables: [],
                 columns: [
                     {
@@ -93,13 +96,18 @@ describe('Customizer', () => {
                         generator: 'int',
                         options: {
                             autoIncrement: false,
-                        } as ColumnOptions
+                            max: 10,
+                            min: 10,
+                            nullable: true,
+                            unique: true,
+                            unsigned: true
+                        }
                     }
                 ]
             }]
         };
         const result = await customizer.customize(schema);
-        expect(result.tables[0].maxLines).toBe(0);
+        expect(result.tables[0].maxLines).toBe(1000);
     });
     it('overrides column options', async () => {
         customSchema.tables = [{
@@ -120,8 +128,6 @@ describe('Customizer', () => {
         schema = {
             tables: [{
                 name: 'table1',
-                disableTriggers: false,
-                maxLines: 0,
                 referencedTables: [],
                 columns: [
                     {
@@ -129,8 +135,12 @@ describe('Customizer', () => {
                         generator: 'int',
                         options: {
                             autoIncrement: false,
-                            max: 0
-                        } as ColumnOptions
+                            max: 0,
+                            min: 10,
+                            nullable: true,
+                            unique: true,
+                            unsigned: true
+                        }
                     }
                 ]
             }]

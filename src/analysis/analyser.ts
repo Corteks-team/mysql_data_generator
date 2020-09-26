@@ -27,7 +27,7 @@ export class Analyser {
             });
 
         table.columns = columns.map((column: MySQLColumn) => {
-            const options: ColumnOptions = {
+            const options: Column['options'] = {
                 max: 0,
                 min: 0,
                 autoIncrement: false,
@@ -135,6 +135,7 @@ export class Analyser {
 
     private extractForeignKeys = async (table: Table) => {
         const foreignKeys = await this.dbConnector.getForeignKeys(table);
+        table.referencedTables = [];
         for (let c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
             const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());

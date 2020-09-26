@@ -1,5 +1,6 @@
 import { Random, MersenneTwister19937 } from "random-js";
 import { Logger } from 'log4js';
+import { CustomizedSchema, CustomizedTable } from '../customized-schema';
 
 export class Generator {
     private random: Random;
@@ -7,7 +8,7 @@ export class Generator {
 
     constructor(
         private dbConnector: DatabaseConnector,
-        private schema: CustomSchema,
+        private schema: CustomizedSchema,
         private logger: Logger
     ) {
         if (schema.settings.seed) {
@@ -50,21 +51,13 @@ export class Generator {
 
     public async fillTables(reset: boolean = false) {
         this.beforeAll();
-        /** @todo: Remove deprecated warning */
-        let useDeprecatedLines = false;
         for (const table of this.schema.tables) {
-            if (table.lines) {
-                useDeprecatedLines = true;
-                table.maxLines = table.lines;
-            }
             await this.fill(table, reset);
         }
-        if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
-        /****************/
         this.afterAll();
     }
 
-    private async fill(table: Table, reset: boolean = false) {
+    private async fill(table: CustomizedTable, reset: boolean = false) {
         if (reset) await this.empty(table);
         this.logger.info('fill: ', table.name);
         let handleTriggers = table.disableTriggers || (table.disableTriggers === undefined && this.schema.settings.disableTriggers);
@@ -91,7 +84,7 @@ export class Generator {
         }
     }
 
-    private async before(table: Table) {
+    private async before(table: CustomizedTable) {
         if (!table.before) return;
 
         for (const query of table.before) {
@@ -99,7 +92,7 @@ export class Generator {
         }
     }
 
-    private async generateData(table: Table): Promise<number> {
+    private async generateData(table: CustomizedTable): Promise<number> {
         const tableForeignKeyValues: { [key: string]: any[]; } = {};
 
         let previousRunRows: number = -1;
@@ -117,12 +110,11 @@ export class Generator {
         try {
             await this.getForeignKeyValues(table, tableForeignKeyValues, deltaRows);
         } catch (ex) {
-            process.stdout.write('\n');
             this.logger.warn(ex.message);
         }
 
         let currentTableRow = 0;
-        process.stdout.write(currentNbRows + ' / ' + maxLines);
+        this.logger.info(currentNbRows + ' / ' + maxLines);
         TABLE_LOOP: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
@@ -226,23 +218,19 @@ export class Generator {
             insertedRows = await this.dbConnector.insert(table.name, rows);
             currentNbRows += insertedRows;
             if (previousRunRows === currentNbRows) {
-                process.stdout.write('\n');
                 this.logger.warn(`Last run didn't insert any new rows in ${table.name}`);
                 break TABLE_LOOP;
             }
-            process.stdout.clearLine(-1);
-            process.stdout.cursorTo(0);
-            process.stdout.write(currentNbRows + ' / ' + maxLines);
+            this.logger.info(currentNbRows + ' / ' + maxLines);
             if (this.continue) {
                 this.continue = false;
                 break TABLE_LOOP;
             }
         }
-        process.stdout.write('\n');
         return insertedRows;
     }
 
-    private async after(table: Table) {
+    private async after(table: CustomizedTable) {
         if (!table.after) return;
 
         for (const query of table.after) {

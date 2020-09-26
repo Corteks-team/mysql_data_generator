@@ -1,38 +1,25 @@
 import { TestConnector } from './test-connector';
-import { databaseEngines } from '../src/database-engines';
 import { Generator } from '../src/generation/generator';
 import { logger } from './index';
+import { CustomizedSchema, CustomizedTable } from '../src/customized-schema';
 
 let testConnector: TestConnector;
-let dummySchema: CustomSchema;
 describe('Generator', () => {
     beforeEach(() => {
         testConnector = new TestConnector();
-        dummySchema = {
-            settings: {
-                beforeAll: [],
-                afterAll: [],
-                engine: databaseEngines.MARIADB,
-                disableTriggers: false,
-                ignoredTables: [],
-                tablesToFill: [],
-                values: {},
-                options: [],
-            },
-            tables: [],
-        };
     });
     it('should empty table', async () => {
-        dummySchema.tables = [{
-            name: 'test'
-        } as Table];
+        const customizedSchema = new CustomizedSchema();
+        const customizedTable = new CustomizedTable();
+        customizedTable.name = 'test';
+        customizedTable.addLines = 10;
+        customizedSchema.tables.push(customizedTable);
 
         const generator = new Generator(
             testConnector,
-            dummySchema,
+            customizedSchema,
             logger
         );
-
 
         await generator.fillTables(true);
 
@@ -40,14 +27,16 @@ describe('Generator', () => {
 
     });
     it('launch before script', async () => {
-        dummySchema.tables = [{
-            name: 'test',
-            before: ['query']
-        } as Table];
+        const customizedSchema = new CustomizedSchema();
+        const customizedTable = new CustomizedTable();
+        customizedTable.name = 'test';
+        customizedTable.addLines = 10;
+        customizedTable.before = ['query'];
+        customizedSchema.tables.push(customizedTable);
 
         const generator = new Generator(
             testConnector,
-            dummySchema,
+            customizedSchema,
             logger
         );
         await generator.fillTables(true);
@@ -56,20 +45,18 @@ describe('Generator', () => {
 
     });
     it('launch after script', async () => {
-        dummySchema.tables = [{
-            name: 'test',
-            maxLines: 100,
-            after: ['query'],
-            columns: [],
-            disableTriggers: false,
-            referencedTables: []
-        }];
+        const customizedSchema = new CustomizedSchema();
+        const customizedTable = new CustomizedTable();
+        customizedTable.name = 'test';
+        customizedTable.maxLines = 100;
+        customizedTable.after = ['query'];
+        customizedSchema.tables.push(customizedTable);
 
         testConnector.insert = jest.fn(async (table, rows) => 100);
 
         const generator = new Generator(
             testConnector,
-            dummySchema,
+            customizedSchema,
             logger
         );
         await generator.fillTables(true);

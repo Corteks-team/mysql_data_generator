@@ -97,26 +97,14 @@ export class MariaDBConnector implements DatabaseConnector {
     async getTablesInformation(): Promise<Table[]> {
         const tablesQuery = this.dbConnection
             .select([
-                this.dbConnection.raw('t.TABLE_NAME AS name'),
-                this.dbConnection.raw('GROUP_CONCAT(c.REFERENCED_TABLE_NAME SEPARATOR ",") AS referencedTablesString'),
+                this.dbConnection.raw('t.TABLE_NAME AS name')
             ])
             .from('information_schema.tables as t')
-            .leftJoin('information_schema.key_column_usage as c', function () {
-                this.on('c.CONSTRAINT_SCHEMA', '=', 't.TABLE_SCHEMA')
-                    .andOn('c.TABLE_NAME', '=', 't.TABLE_NAME');
-            })
             .where('t.TABLE_SCHEMA', this.database)
             .andWhere('t.TABLE_TYPE', 'BASE TABLE')
-            .groupBy('t.TABLE_SCHEMA', 't.TABLE_NAME')
-            .orderBy(2);
+            .groupBy('t.TABLE_SCHEMA', 't.TABLE_NAME');
 
         const tables = await tablesQuery;
-
-        for (const t in tables) {
-            const table = tables[t];
-            table.referencedTables = (table.referencedTablesString as string || '').split(',').filter(x => x.length > 0);
-            delete (table.referencedTablesString)
-        }
         return tables;
     }
 
