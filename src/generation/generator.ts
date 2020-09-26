@@ -2,25 +2,26 @@ import { Random, MersenneTwister19937 } from "random-js";
 import { CustomizedSchema, CustomizedTable } from '../customized-schema.class';
 import { Table } from '../schema.class';
 import { DatabaseConnector } from '../database/database-connector-builder';
-import { EventEmitter } from 'events';
+import colors from 'colors';
 
 export interface ProgressEvent {
     step: string;
     currentTable: string;
     currentValue: number;
     max: number;
-    comment: string;
+    state: 'RUNNING' | 'DONE';
+    comment?: string;
 }
 
-export class Generator extends EventEmitter {
+export class Generator {
     private random: Random;
     private continue: boolean = false;
 
     constructor(
         private dbConnector: DatabaseConnector,
         private schema: CustomizedSchema,
+        private callback: (event: ProgressEvent) => void = () => null,
     ) {
-        super();
         if (schema.settings.seed) {
             this.random = new Random(MersenneTwister19937.seed(schema.settings.seed));
         } else {
@@ -33,16 +34,16 @@ export class Generator extends EventEmitter {
     }
 
     private async empty(table: Table) {
-        this.emit('progress', { currentTable: table.name, step: 'empty', currentValue: 0, max: 1 } as ProgressEvent);
+        this.callback({ currentTable: table.name, step: 'empty', state: 'RUNNING', currentValue: 0, max: 1 });
         await this.dbConnector.emptyTable(table);
-        this.emit('progress', { currentTable: table.name, step: 'empty', currentValue: 1, max: 1 } as ProgressEvent);
+        this.callback({ currentTable: table.name, step: 'empty', state: 'DONE', currentValue: 1, max: 1 });
     }
 
     private async getForeignKeyValues(table: CustomizedTable, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
         const columns = table.columns.filter((column) => column.foreignKey);
         /** @TODO: parallelize foreign key gathering */
         for (var c = 0; c < columns.length; c++) {
-            this.emit('progress', { currentTable: table.name, step: 'foreignkeys', currentValue: c, max: columns.length } as ProgressEvent);
+            this.callback({ currentTable: table.name, step: 'foreignkeys', state: 'RUNNING', currentValue: c, max: columns.length });
             const column = columns[c];
             const foreignKey = column.foreignKey!;
             let values = await this.dbConnector.getValuesForForeignKeys(
@@ -55,7 +56,7 @@ export class Generator extends EventEmitter {
                 foreignKey.where,
             );
             tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
-            this.emit('progress', { currentTable: table.name, step: 'foreignkeys', currentValue: c + 1, max: columns.length } as ProgressEvent);
+            this.callback({ currentTable: table.name, step: 'foreignkeys', state: 'DONE', currentValue: c + 1, max: columns.length });
         }
     }
 
@@ -78,30 +79,33 @@ export class Generator extends EventEmitter {
     }
 
     private async beforeAll() {
-        if (!this.schema.settings.beforeAll) return;
+        if (this.schema.settings.beforeAll.length === 0) return;
 
         for (let i = 0; i < this.schema.settings.beforeAll.length; i++) {
-            this.emit('progress', { currentTable: '', step: 'beforeAll', currentValue: i, max: this.schema.settings.beforeAll.length } as ProgressEvent);
+            this.callback({ currentTable: '', step: 'beforeAll', state: 'RUNNING', currentValue: i, max: this.schema.settings.beforeAll.length });
             await this.dbConnector.executeRawQuery(this.schema.settings.beforeAll[i]);
         }
+        this.callback({ currentTable: '', step: 'beforeAll', state: 'DONE', currentValue: this.schema.settings.beforeAll.length, max: this.schema.settings.beforeAll.length });
     }
 
     private async afterAll() {
-        if (!this.schema.settings.afterAll) return;
+        if (this.schema.settings.afterAll.length === 0) return;
 
         for (let i = 0; i < this.schema.settings.afterAll.length; i++) {
-            this.emit('progress', { currentTable: '', step: 'afterAll', currentValue: i, max: this.schema.settings.afterAll.length } as ProgressEvent);
+            this.callback({ currentTable: '', step: 'afterAll', state: 'RUNNING', currentValue: i, max: this.schema.settings.afterAll.length });
             await this.dbConnector.executeRawQuery(this.schema.settings.afterAll[i]);
         }
+        this.callback({ currentTable: '', step: 'afterAll', state: 'DONE', currentValue: this.schema.settings.afterAll.length, max: this.schema.settings.afterAll.length });
     }
 
     private async before(table: CustomizedTable) {
-        if (!table.before) return;
+        if (table.before.length === 0) return;
 
         for (let i = 0; i < table.before.length; i++) {
-            this.emit('progress', { currentTable: table.name, step: 'before', currentValue: i, max: table.before.length } as ProgressEvent);
+            this.callback({ currentTable: table.name, state: 'RUNNING', step: 'before', currentValue: i, max: table.before.length });
             await this.dbConnector.executeRawQuery(table.before[i]);
         }
+        this.callback({ currentTable: table.name, step: 'before', state: 'DONE', currentValue: table.after.length, max: table.after.length });
     }
 
     private async generateData(table: CustomizedTable): Promise<number> {
@@ -122,11 +126,11 @@ export class Generator extends EventEmitter {
         try {
             await this.getForeignKeyValues(table, tableForeignKeyValues, deltaRows);
         } catch (ex) {
-            console.warn(ex.message);
+            this.callback({ currentTable: table.name, step: 'generateData', state: 'RUNNING', currentValue: currentNbRows, max: maxLines, comment: ex.message });
         }
 
         let currentTableRow = 0;
-        this.emit('progress', { currentTable: table.name, step: 'generateData', currentValue: currentNbRows, max: maxLines } as ProgressEvent);
+        this.callback({ currentTable: table.name, step: 'generateData', state: 'RUNNING', currentValue: currentNbRows, max: maxLines });
         TABLE_LOOP: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
@@ -159,7 +163,7 @@ export class Generator extends EventEmitter {
                     if (column.foreignKey) {
                         const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
                         if (currentTableRow >= foreignKeys.length && !column.options.nullable && column.options.unique) {
-                            console.warn(`${table.name}: Not enough values available for foreign key ${table.name}.${column.name}`);
+                            this.callback({ currentTable: table.name, step: 'generateData', state: 'RUNNING', currentValue: currentNbRows, max: maxLines, comment: colors.red(`${table.name}: Not enough values available for foreign key ${table.name}.${column.name}`) });
                             break BATCH_LOOP;
                         }
                         if (currentTableRow >= foreignKeys.length && column.options.unique && column.options.nullable) continue;
@@ -235,24 +239,25 @@ export class Generator extends EventEmitter {
             insertedRows = await this.dbConnector.insert(table.name, rows);
             currentNbRows += insertedRows;
             if (previousRunRows === currentNbRows) {
-                console.warn(`Last run didn't insert any new rows in ${table.name}`);
                 break TABLE_LOOP;
             }
-            this.emit('progress', { currentTable: table.name, step: 'generateData', currentValue: currentNbRows, max: maxLines } as ProgressEvent);
+            this.callback({ currentTable: table.name, step: 'generateData', state: 'RUNNING', currentValue: currentNbRows, max: maxLines });
             if (this.continue) {
                 this.continue = false;
                 break TABLE_LOOP;
             }
         }
+        this.callback({ currentTable: table.name, step: 'generateData', state: 'DONE', currentValue: currentNbRows, max: maxLines });
         return insertedRows;
     }
 
     private async after(table: CustomizedTable) {
-        if (!table.after) return;
+        if (table.after.length === 0) return;
 
         for (let i = 0; i < table.after.length; i++) {
-            this.emit('progress', { currentTable: table.name, step: 'before', currentValue: i, max: table.after.length } as ProgressEvent);
+            this.callback({ currentTable: table.name, step: 'after', state: 'RUNNING', currentValue: i, max: table.after.length });
             await this.dbConnector.executeRawQuery(table.after[i]);
         }
+        this.callback({ currentTable: table.name, step: 'after', state: 'DONE', currentValue: table.after.length, max: table.after.length });
     }
 }
