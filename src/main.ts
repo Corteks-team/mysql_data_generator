@@ -75,8 +75,8 @@ class Main extends CliMainClass {
                 logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
             }
             const customizer = new Customizer(customSchema, logger);
-            customSchema = await customizer.customize(schema);
-            this.generator = new Generator(dbConnector, customSchema, logger);
+            const customizedSchema = await customizer.customize(schema);
+            this.generator = new Generator(dbConnector, customizedSchema, logger);
 
             await dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
             await this.generator.fillTables(this.reset);
