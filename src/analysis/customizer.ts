@@ -1,5 +1,6 @@
 import { Logger } from 'log4js';
 import { databaseEngines } from '../database-engines';
+import { CustomizedSchema, CustomizedTable } from '../customized-schema';
 
 export const dummyCustomSchema: CustomSchema = {
     settings: {
@@ -21,7 +22,9 @@ export default class Customizer {
         private logger: Logger
     ) { }
 
-    public async customize(schema: Schema): Promise<CustomSchema> {
+    public async customize(schema: Schema): Promise<CustomizedSchema> {
+        let customizedSchema = new CustomizedSchema();
+        customizedSchema.settings = this.customSchema.settings;
         let tables = schema.tables
             .filter((table) => {
                 return !this.customSchema.settings.ignoredTables.includes(table.name)
@@ -31,48 +34,53 @@ export default class Customizer {
                     );
             });
 
-        tables = await Promise.all(tables.map(async (table) => {
-            await this.customizeTable(table);
-            return table;
-        }));
-        this.customSchema.tables = this.orderTablesByForeignKeys(tables);
-        return this.customSchema;
+        const customizedTables: CustomizedTable[] = tables.map((table) => {
+            const customizedTable = this.customizeTable(table);
+            return customizedTable;
+        });
+        customizedSchema.tables = this.orderTablesByForeignKeys(customizedTables);
+        return customizedSchema;
     }
 
-    private customizeTable(table: Table): void {
+    private customizeTable(table: Table): CustomizedTable {
+        let customizedTable: CustomizedTable = new CustomizedTable();
+        customizedTable.name = table.name;
+        customizedTable.referencedTables = table.referencedTables;
         /** @todo: Remove deprecated warning */
         let useDeprecatedLines = false;
         this.customSchema.tables.forEach((table) => {
             if (table.lines) {
                 useDeprecatedLines = true;
-                table.maxLines = table.lines;
+                customizedTable.maxLines = table.lines;
             }
         });
         if (useDeprecatedLines) this.logger.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
         /****************/
         const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
         if (customTable) {
-            table.maxLines = customTable.maxLines;
-            table.addLines = customTable.addLines;
-            table.disableTriggers = customTable.disableTriggers;
-            table.before = customTable.before;
-            table.after = customTable.after;
+            customizedTable.maxLines = customTable.maxLines || Infinity;
+            customizedTable.addLines = customTable.addLines || Infinity;
+            customizedTable.disableTriggers = customTable.disableTriggers || false;
+            customizedTable.before = customTable.before || [];
+            customizedTable.after = customTable.after || [];
         }
         table.columns.forEach((column) => {
             const customColumn = customTable?.columns?.find(c => c.name.toLowerCase() === column.name.toLowerCase());
             if (customColumn?.foreignKey) {
                 column.foreignKey = customColumn.foreignKey;
-                table.referencedTables.push(column.foreignKey.table);
+                customizedTable.referencedTables.push(column.foreignKey.table);
             }
             if (customColumn?.values) column.values = customColumn.values;
             const globalSetting = this.customSchema.settings.options.find(o => o.dataTypes.includes(column.generator));
             column.options = Object.assign({}, column.options, customColumn?.options, globalSetting?.options);
+            customizedTable.columns.push(column);
         });
+        return customizedTable;
     }
 
-    private orderTablesByForeignKeys(tables: Table[]) {
-        let sortedTables: Table[] = [];
-        const recursive = (branch: Table[]) => {
+    private orderTablesByForeignKeys(tables: CustomizedTable[]) {
+        let sortedTables: CustomizedTable[] = [];
+        const recursive = (branch: CustomizedTable[]) => {
             const table = branch[branch.length - 1];
             while (table.referencedTables.length > 0) {
                 const tableName = table.referencedTables.pop();
@@ -92,7 +100,7 @@ export default class Customizer {
                 before: table.before,
                 after: table.after,
                 referencedTables: []
-            } as Table);
+            });
             branch.pop();
             return;
         };
