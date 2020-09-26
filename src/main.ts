@@ -105,24 +105,28 @@ class Main extends CliMainClass {
         const customizedSchema = CustomizedSchema.create(schema, customSchema);
         let previousEvent: ProgressEvent = {} as any;
         let currentProgress: SingleBar;
-        this.generator.on('progress', (event: ProgressEvent) => {
+        let lastComment: string = '';
+        this.generator = new Generator(this.dbConnector, customizedSchema, (event: ProgressEvent) => {
             if (event.currentTable !== previousEvent.currentTable) {
+                lastComment = '';
                 if (currentProgress) currentProgress.stop();
                 console.log(colors.green(event.currentTable));
             }
             if (event.step !== previousEvent.step) {
                 if (currentProgress) currentProgress.stop();
                 currentProgress = new cliProgress.SingleBar({
-                    format: `${event.step} | ${colors.cyan('{bar}')} | {percentage}% || {value}/{total}`,
+                    format: `${event.step + new Array(16 - event.step.length).join(' ')} | ${colors.cyan('{bar}')} | {percentage}% | {value}/{total} | {comment}`,
                     stopOnComplete: true,
                 });
-                currentProgress.start(event.max, event.currentValue);
+                currentProgress.start(event.max, event.currentValue, { comment: event.comment || lastComment });
             } else {
-                if (currentProgress) currentProgress.update(event.currentValue);
+                if (currentProgress) currentProgress.update(event.currentValue, { comment: event.comment || lastComment });
+                if (event.comment) lastComment = event.comment;
             }
+            if (event.state === 'DONE') currentProgress.stop();
             previousEvent = event;
         });
-        this.generator = new Generator(this.dbConnector, customizedSchema);
+
 
         await this.dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
         await this.generator.fillTables(this.reset);
