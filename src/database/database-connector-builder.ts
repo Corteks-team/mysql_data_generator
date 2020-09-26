@@ -1,8 +1,5 @@
 import { MariaDBConnector } from './mariadb-connector';
-
-export enum databaseEngine {
-    'MariaDB'
-}
+import { databaseEngines } from '../database-engines';
 
 export class DatabaseConnectorBuilder {
     private ip: string = '127.0.0.1';
@@ -12,12 +9,12 @@ export class DatabaseConnectorBuilder {
     private password: string = '';
 
     constructor(
-        private engine: databaseEngine,
+        private engine: databaseEngines,
     ) { }
 
     public async build(): Promise<DatabaseConnector> {
         switch (this.engine) {
-            case databaseEngine.MariaDB:
+            case databaseEngines.MARIADB:
                 const connector = new MariaDBConnector(
                     this.ip,
                     this.port,
