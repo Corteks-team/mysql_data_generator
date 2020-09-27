@@ -46,8 +46,7 @@ export class CustomizedSchema extends CustomSchema {
     }
 
     private static customizeTable(table: Table, customSchema: CustomSchema): CustomizedTable {
-        const customizedTable: CustomizedTable = new CustomizedTable();
-        customizedTable.name = table.name;
+        const customizedTable: CustomizedTable = new CustomizedTable(table.name);
         customizedTable.referencedTables = table.referencedTables;
         const customTable = customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
         if (customTable) {
@@ -121,7 +120,9 @@ export class CustomizedSchema extends CustomSchema {
 }
 
 export class CustomizedTable {
-    name: string = '';
+    constructor(
+        public name: string,
+    ) { }
     columns: CustomizedColumn[] = [];
     referencedTables: string[] = [];
     before: string[] = [];

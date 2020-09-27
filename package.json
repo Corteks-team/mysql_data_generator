@@ -25,6 +25,7 @@
     },
     "dependencies": {
         "@corteks/clify": "^0.2.1",
+        "@types/cli-progress": "^3.8.0",
         "class-transformer": "^0.3.1",
         "class-validator": "^0.12.2",
         "fs-extra": "^9.0.1",
@@ -33,6 +34,7 @@
         "log4js": "^6.3.0",
         "moment": "^2.29.0",
         "mysql": "^2.18.1",
+        "pg": "^8.3.3",
         "random-js": "^2.1.0",
         "uri-js": "^4.4.0",
         "yargs": "^15.4.1"

@@ -2,6 +2,7 @@ import { MariaDBConnector } from './mariadb-connector';
 import { Table, Schema, ForeignKey } from '../schema/schema.class';
 import { DatabaseEngines } from './database-engines';
 import * as URI from 'uri-js';
+import { PGConnector } from './postgres-connector';
 
 export interface DatabaseConnector {
     init(): Promise<void>;
@@ -47,6 +48,10 @@ export class DatabaseConnectorBuilder {
                 connector = new MariaDBConnector(this.uri);
                 await connector.init();
                 break;
+            case 'postgres':
+                connector = new PGConnector(
+                    this.uri,
+                );
             default:
                 throw new Error('Unsupported engine.');
         }
