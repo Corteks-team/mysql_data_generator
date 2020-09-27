@@ -24,7 +24,7 @@ export class CustomSettings {
     options: Array<
         {
             dataTypes: string[],
-            options: CustomColumn;
+            options: Partial<Column>;
         }
     > = [];
     @IsNumber()
@@ -60,7 +60,7 @@ export class CustomTable {
     name: string = '';
     @IsArray()
     @ValidateNested({ each: true })
-    columns: CustomColumn[] = [];
+    columns?: CustomColumn[] = [];
     @IsNumber()
     lines?: number;
     @IsArray()
