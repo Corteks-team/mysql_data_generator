@@ -1,5 +1,5 @@
 type ValuePointer = string;
-type ParsedValues = string[];
+type ParsedValues = Array<string | number>;
 type ValuesWithRatio = { [key: string]: number; };
 type Values = ValuePointer | ParsedValues | ValuesWithRatio;
 
