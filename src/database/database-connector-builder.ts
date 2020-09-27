@@ -1,5 +1,28 @@
 import { MariaDBConnector } from './mariadb-connector';
-import { databaseEngines } from '../database-engines';
+import { Table, Schema, ForeignKey } from '../schema.class';
+
+export enum DatabaseEngines {
+    MARIADB = 'MariaDB',
+}
+
+export interface DatabaseConnector {
+    init(): Promise<void>;
+    destroy(): Promise<void>;
+    countLines(table: Table): Promise<number>;
+    emptyTable(table: Table): Promise<void>;
+    executeRawQuery(query: string): Promise<void>;
+    insert(table: string, lines: any[]): Promise<number>;
+    getSchema(): Promise<Schema>;
+
+    getTablesInformation(): Promise<Table[]>;
+    getColumnsInformation(table: Table): Promise<MySQLColumn[]>;
+    getForeignKeys(table: Table): Promise<ForeignKey[]>;
+    getValuesForForeignKeys(table: string, column: string, foreignTable: string, foreignColumn: string, limit: number, unique: boolean, condition: string | undefined): Promise<any[]>;
+    backupTriggers(tables: string[]): Promise<void>;
+    cleanBackupTriggers(): void;
+    disableTriggers(table: string): Promise<void>;
+    enableTriggers(table: string): Promise<void>;
+}
 
 export class DatabaseConnectorBuilder {
     private ip: string = '127.0.0.1';
@@ -14,7 +37,7 @@ export class DatabaseConnectorBuilder {
 
     public async build(): Promise<DatabaseConnector> {
         switch (this.engine) {
-            case databaseEngines.MARIADB:
+            case DatabaseEngines.MARIADB:
                 const connector = new MariaDBConnector(
                     this.ip,
                     this.port,

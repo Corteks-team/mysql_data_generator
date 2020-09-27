@@ -1,4 +1,8 @@
+import { DatabaseConnector } from '../src/database/database-connector-builder';
+import { Table } from '../src/schema.class';
+
 export class TestConnector implements DatabaseConnector {
+    getSchema = jest.fn();
     init = jest.fn();
     backupTriggers = jest.fn();
     cleanBackupTriggers = jest.fn();

@@ -2,6 +2,8 @@ import Knex from 'knex';
 import { getLogger } from 'log4js';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { Table, Column, Schema } from '../schema.class';
+import { DatabaseConnector } from './database-connector-builder';
 
 export class MariaDBConnector implements DatabaseConnector {
     private dbConnection: Knex;
@@ -53,6 +55,167 @@ export class MariaDBConnector implements DatabaseConnector {
         await this.dbConnection.raw('SET GLOBAL foreign_key_checks = OFF;');
     }
 
+    async countLines(table: Table) {
+        return (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
+    }
+
+    async emptyTable(table: Table) {
+        await this.dbConnection.raw('SET FOREIGN_KEY_CHECKS = 0;');
+        await this.dbConnection.raw(`DELETE FROM ${table.name}`);
+        await this.dbConnection.raw(`ALTER TABLE ${table.name} AUTO_INCREMENT = 1;`);
+    }
+
+    async executeRawQuery(query: string) {
+        await this.dbConnection.raw(query);
+    }
+
+    async insert(table: string, rows: any[]): Promise<number> {
+        if (rows.length === 0) return 0;
+        const query = await this.dbConnection(table)
+            .insert(rows)
+            .toQuery()
+            .replace('insert into', 'insert ignore into');
+        const insertResult = await this.dbConnection.raw(query);
+        return insertResult[0].affectedRows;
+    }
+
+    async destroy() {
+        await this.dbConnection.raw('SET GLOBAL foreign_key_checks = ON;');
+        await this.dbConnection.destroy();
+    }
+
+    async getSchema(): Promise<Schema> {
+        let tables = await this.getTablesInformation();
+        tables = await Promise.all(tables.map(async (table) => {
+            await this.extractColumns(table);
+            await this.extractForeignKeys(table);
+            return table;
+        }));
+        return Schema.fromJSON({ tables: tables });
+    }
+
+    private async extractColumns(table: Table) {
+        this.logger.info(table.name);
+        const columns: MySQLColumn[] = await this.getColumnsInformation(table);
+        columns
+            .filter((column: MySQLColumn) => {
+                return ['enum', 'set'].includes(column.DATA_TYPE || '');
+            }).forEach((column: MySQLColumn) => {
+                column.NUMERIC_PRECISION = column.COLUMN_TYPE.match(/[enum,set]\((.*)\)$/)![1].split('\',\'').length;
+            });
+
+        table.columns = columns.map((mysqlColumn: MySQLColumn) => {
+            const column = new Column();
+            column.name = mysqlColumn.COLUMN_NAME;
+            column.generator = mysqlColumn.DATA_TYPE;
+            if (mysqlColumn.COLUMN_KEY && mysqlColumn.COLUMN_KEY.match(/PRI|UNI/ig)) column.unique = true;
+            if (mysqlColumn.IS_NULLABLE === 'YES') column.nullable = true;
+            column.max = mysqlColumn.CHARACTER_MAXIMUM_LENGTH || mysqlColumn.NUMERIC_PRECISION || 255;
+            if (mysqlColumn.COLUMN_TYPE && mysqlColumn.COLUMN_TYPE.includes('unsigned')) column.unsigned = true;
+            if (mysqlColumn.EXTRA && mysqlColumn.EXTRA.includes('auto_increment')) column.autoIncrement = true;
+            switch (mysqlColumn.DATA_TYPE) {
+                case 'bit':
+                    break;
+                case 'bool':
+                case 'boolean':
+                    break;
+                case 'smallint':
+                    if (column.unsigned) {
+                        column.min = 0;
+                        column.max = 65535;
+                    } else {
+                        column.min = -32768;
+                        column.max = 32767;
+                    }
+                    break;
+                case 'mediumint':
+                    if (column.unsigned) {
+                        column.min = 0;
+                        column.max = 16777215;
+                    } else {
+                        column.min = -8388608;
+                        column.max = 8388607;
+                    }
+                    break;
+                case 'tinyint':
+                    if (column.unsigned) {
+                        column.min = 0;
+                        column.max = 255;
+                    } else {
+                        column.min = -128;
+                        column.max = 127;
+                    }
+                    break;
+                case 'int':
+                case 'integer':
+                case 'bigint':
+                    if (column.unsigned) {
+                        column.min = 0;
+                        column.max = 2147483647;
+                    } else {
+                        column.min = -2147483648;
+                        column.max = 2147483647;
+                    }
+                    break;
+                case 'decimal':
+                case 'dec':
+                case 'float':
+                case 'double':
+                    if (column.unsigned) {
+                        column.min = 0;
+                        column.max = 2147483647;
+                    } else {
+                        column.min = -2147483648;
+                        column.max = 2147483647;
+                    }
+                    break;
+                case 'date':
+                case 'datetime':
+                case 'timestamp':
+                    column.minDate = '01-01-1970';
+                    column.maxDate = undefined;
+                    break;
+                case 'time':
+                    break;
+                case 'year':
+                    column.min = 1901;
+                    column.max = 2155;
+                    break;
+                case 'varchar':
+                case 'char':
+                case 'binary':
+                case 'varbinary':
+                case 'tinyblob':
+                case 'text':
+                case 'mediumtext':
+                case 'longtext':
+                case 'blob':
+                case 'mediumblob': // 16777215
+                case 'longblob': // 4,294,967,295
+                    break;
+                case 'set':
+                case 'enum':
+                    column.max = mysqlColumn.NUMERIC_PRECISION;
+                    break;
+            }
+            return column;
+        });
+    }
+
+    private extractForeignKeys = async (table: Table) => {
+        const foreignKeys = await this.getForeignKeys(table);
+        table.referencedTables = [];
+        for (let c = 0; c < table.columns.length; c++) {
+            const column = table.columns[c];
+            const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
+            if (match) {
+                column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
+                column.unique = column.unique || match.uniqueIndex || false;
+                table.referencedTables.push(column.foreignKey.table);
+            }
+        }
+    };
+
     public async backupTriggers(tables: string[]): Promise<void> {
         const triggers = await this.dbConnection
             .select()
@@ -84,8 +247,8 @@ export class MariaDBConnector implements DatabaseConnector {
             if (trigger.EVENT_OBJECT_SCHEMA !== this.database || trigger.EVENT_OBJECT_TABLE !== table) continue;
             await this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`);
             await this.dbConnection.raw(
-                `CREATE DEFINER = ${trigger.DEFINER} 
-                TRIGGER ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME} ${trigger.ACTION_TIMING} ${trigger.EVENT_MANIPULATION} 
+                `CREATE DEFINER = ${trigger.DEFINER}
+                TRIGGER ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME} ${trigger.ACTION_TIMING} ${trigger.EVENT_MANIPULATION}
                 ON ${trigger.EVENT_OBJECT_SCHEMA}.${trigger.EVENT_OBJECT_TABLE}
                 FOR EACH ROW
                 ${trigger.ACTION_STATEMENT}`
@@ -95,8 +258,8 @@ export class MariaDBConnector implements DatabaseConnector {
     }
 
     async getTablesInformation(): Promise<Table[]> {
-        const tablesQuery = this.dbConnection
-            .select([
+        const tableNames = await this.dbConnection
+            .select<{ name: string; }[]>([
                 this.dbConnection.raw('t.TABLE_NAME AS name')
             ])
             .from('information_schema.tables as t')
@@ -104,7 +267,11 @@ export class MariaDBConnector implements DatabaseConnector {
             .andWhere('t.TABLE_TYPE', 'BASE TABLE')
             .groupBy('t.TABLE_SCHEMA', 't.TABLE_NAME');
 
-        const tables = await tablesQuery;
+        const tables = tableNames.map((row) => {
+            const table = new Table();
+            table.name = row.name;
+            return table;
+        });
         return tables;
     }
 
@@ -155,16 +322,6 @@ export class MariaDBConnector implements DatabaseConnector {
         return foreignKeys;
     }
 
-    async countLines(table: Table) {
-        return (await this.dbConnection(table.name).count())[0]['count(*)'] as number;
-    }
-
-    async emptyTable(table: Table) {
-        await this.dbConnection.raw('SET FOREIGN_KEY_CHECKS = 0;');
-        await this.dbConnection.raw(`DELETE FROM ${table.name}`);
-        await this.dbConnection.raw(`ALTER TABLE ${table.name} AUTO_INCREMENT = 1;`);
-    }
-
     async getValuesForForeignKeys(
         table: string,
         column: string,
@@ -189,24 +346,5 @@ export class MariaDBConnector implements DatabaseConnector {
         }
         values = (await query).map(result => result[foreignColumn]);
         return values;
-    }
-
-    async executeRawQuery(query: string) {
-        await this.dbConnection.raw(query);
-    }
-
-    async insert(table: string, rows: any[]): Promise<number> {
-        if (rows.length === 0) return 0;
-        const query = await this.dbConnection(table)
-            .insert(rows)
-            .toQuery()
-            .replace('insert into', 'insert ignore into');
-        const insertResult = await this.dbConnection.raw(query);
-        return insertResult[0].affectedRows;
-    }
-
-    async destroy() {
-        await this.dbConnection.raw('SET GLOBAL foreign_key_checks = ON;');
-        await this.dbConnection.destroy();
     }
 }
