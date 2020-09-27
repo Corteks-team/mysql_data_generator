@@ -1,6 +1,6 @@
 import { Random, MersenneTwister19937 } from "random-js";
-import { CustomizedSchema, CustomizedTable } from '../customized-schema.class';
-import { Table } from '../schema.class';
+import { CustomizedSchema, CustomizedTable } from '../schema/customized-schema.class';
+import { Table } from '../schema/schema.class';
 import { DatabaseConnector } from '../database/database-connector-builder';
 import colors from 'colors';
 

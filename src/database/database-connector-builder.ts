@@ -1,9 +1,6 @@
 import { MariaDBConnector } from './mariadb-connector';
-import { Table, Schema, ForeignKey } from '../schema.class';
-
-export enum DatabaseEngines {
-    MARIADB = 'MariaDB',
-}
+import { Table, Schema, ForeignKey } from '../schema/schema.class';
+import { DatabaseEngines } from './database-engines';
 
 export interface DatabaseConnector {
     init(): Promise<void>;

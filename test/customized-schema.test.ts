@@ -1,6 +1,6 @@
-import { CustomSchema } from '../src/custom-schema.class';
-import { Schema } from '../src/schema.class';
-import { CustomizedSchema } from '../src/customized-schema.class';
+import { CustomSchema } from '../src/schema/custom-schema.class';
+import { Schema } from '../src/schema/schema.class';
+import { CustomizedSchema } from '../src/schema/customized-schema.class';
 
 describe('CustomizedSchema', () => {
     it('overrides options with global settings', async () => {

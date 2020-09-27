@@ -1,6 +1,6 @@
 import { TestConnector } from './test-connector';
 import { Generator } from '../src/generation/generator';
-import { CustomizedSchema, CustomizedTable } from '../src/customized-schema.class';
+import { CustomizedSchema, CustomizedTable } from '../src/schema/customized-schema.class';
 
 let testConnector: TestConnector;
 describe('Generator', () => {
