@@ -2,13 +2,13 @@ import 'reflect-metadata';
 import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter, KeyPress } from '@corteks/clify';
 import * as fs from 'fs-extra';
-import { Analyser } from './analysis/analyser';
 import { Generator } from './generation/generator';
-import { DatabaseConnectorBuilder } from './database/database-connector-builder';
-import Customizer, { dummyCustomSchema } from './analysis/customizer';
+import { DatabaseConnectorBuilder, DatabaseConnector, DatabaseEngines } from './database/database-connector-builder';
 import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
-import { databaseEngines } from './database-engines';
+import { Schema } from './schema.class';
+import { CustomSchema } from './custom-schema.class';
+import { CustomizedSchema } from './customized-schema.class';
 
 const logger = getLogger();
 logger.level = "debug";
@@ -33,15 +33,15 @@ class Main extends CliMainClass {
     @CliParameter()
     private reset: boolean = false;
 
-    private generator: Generator | undefined = undefined;
+    private dbConnector: DatabaseConnector | undefined;
+    private generator: Generator | undefined;
 
     async main(): Promise<number> {
         if (!this.database) throw new Error('Please provide a valid database name');
         const [host, port] = this.host.split(':');
-        const dbConnectorBuilder = new DatabaseConnectorBuilder(databaseEngines.MARIADB);
-        let dbConnector: DatabaseConnector;
+        const dbConnectorBuilder = new DatabaseConnectorBuilder(DatabaseEngines.MARIADB);
         try {
-            dbConnector = await dbConnectorBuilder
+            this.dbConnector = await dbConnectorBuilder
                 .setHost(host)
                 .setPort(parseInt(port, 10))
                 .setDatabase(this.database)
@@ -56,33 +56,10 @@ class Main extends CliMainClass {
         }
         try {
             if (this.analyse) {
-                const analyser = new Analyser(
-                    dbConnector,
-                    logger
-                );
-                const json = await analyser.analyse();
-                fs.writeJSONSync(path.join('settings', 'schema.json'), json, { spaces: 4 });
-                if (!fs.existsSync(path.join('settings', 'custom_schema.jsonc'))) {
-                    let customSchema: CustomSchema = dummyCustomSchema;
-                    fs.writeJSONSync(path.join('settings', 'custom_schema.jsonc'), customSchema, { spaces: 4 });
-                }
-                return 0;
+                return await this.generateSchemaFromDB();
             };
 
-            let schema: Schema = fs.readJSONSync(path.join('settings', 'schema.json'));
-            let customSchema: CustomSchema = dummyCustomSchema;
-            try {
-                customSchema = JSONC.parse(fs.readFileSync(path.join('settings', 'custom_schema.jsonc')).toString());
-            } catch (ex) {
-                logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
-            }
-            const customizer = new Customizer(customSchema, logger);
-            const customizedSchema = await customizer.customize(schema);
-            this.generator = new Generator(dbConnector, customizedSchema, logger);
-
-            await dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
-            await this.generator.fillTables(this.reset);
-            dbConnector.cleanBackupTriggers();
+            await this.generateData();
         } catch (ex) {
             if (ex.code == 'ENOENT') {
                 logger.error('Unable to read from ./settings/schema.json. Please run with --analyse first.');
@@ -91,9 +68,37 @@ class Main extends CliMainClass {
             }
         } finally {
             logger.info('Close database connection');
-            await dbConnector.destroy();
+            await this.dbConnector.destroy();
         }
         return 0;
+    }
+
+    async generateSchemaFromDB() {
+        if (!this.dbConnector) throw new Error('DB connection not ready');
+        const schema = await this.dbConnector.getSchema();
+        fs.writeJSONSync(path.join('settings', 'schema.json'), schema.toJSON(), { spaces: 4 });
+        if (!fs.existsSync(path.join('settings', 'custom_schema.jsonc'))) {
+            let customSchema = new CustomSchema();
+            fs.writeJSONSync(path.join('settings', 'custom_schema.jsonc'), customSchema, { spaces: 4 });
+        }
+        return 0;
+    }
+
+    async generateData() {
+        if (!this.dbConnector) throw new Error('DB connection not ready');
+        let schema: Schema = await Schema.fromJSON(fs.readJSONSync(path.join('settings', 'schema.json')));
+        let customSchema: CustomSchema = new CustomSchema();
+        try {
+            customSchema = JSONC.parse(fs.readFileSync(path.join('settings', 'custom_schema.jsonc')).toString());
+        } catch (ex) {
+            logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
+        }
+        const customizedSchema = CustomizedSchema.create(schema, customSchema);
+        this.generator = new Generator(this.dbConnector, customizedSchema, logger);
+
+        await this.dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
+        await this.generator.fillTables(this.reset);
+        this.dbConnector.cleanBackupTriggers();
     }
 
     @KeyPress('n')

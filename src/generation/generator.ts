@@ -1,6 +1,8 @@
 import { Random, MersenneTwister19937 } from "random-js";
 import { Logger } from 'log4js';
-import { CustomizedSchema, CustomizedTable } from '../customized-schema';
+import { CustomizedSchema, CustomizedTable } from '../customized-schema.class';
+import { Table } from '../schema.class';
+import { DatabaseConnector } from '../database/database-connector-builder';
 
 export class Generator {
     private random: Random;
@@ -27,7 +29,7 @@ export class Generator {
         await this.dbConnector.emptyTable(table);
     }
 
-    private async getForeignKeyValues(table: Table, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
+    private async getForeignKeyValues(table: CustomizedTable, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
         for (var c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
             if (column.foreignKey) {
@@ -38,10 +40,10 @@ export class Generator {
                     column.foreignKey.table,
                     column.foreignKey.column,
                     runRows,
-                    column.options.unique,
+                    column.unique,
                     column.foreignKey.where,
                 );
-                if (values.length === 0 && !column.options.nullable) {
+                if (values.length === 0 && !column.nullable) {
                     throw new Error(`${table.name}: Not enough values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
                 }
                 tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
@@ -125,7 +127,7 @@ export class Generator {
                 const row: { [key: string]: any; } = {};
                 for (var c = 0; c < table.columns.length; c++) {
                     const column = table.columns[c];
-                    if (column.options.autoIncrement) continue;
+                    if (column.autoIncrement) continue;
                     if (column.values) {
                         let parsedValues: ParsedValues = [];
                         let values: Values = column.values;
@@ -152,7 +154,7 @@ export class Generator {
                     switch (column.generator) {
                         case 'set':
                         case 'bit':
-                            row[column.name] = this.random.integer(0, Math.pow(2, column.options.max));
+                            row[column.name] = this.random.integer(0, Math.pow(2, column.max));
                             break;
                         case 'bool':
                         case 'boolean':
@@ -164,19 +166,19 @@ export class Generator {
                         case 'int':
                         case 'integer':
                         case 'bigint':
-                            row[column.name] = this.random.integer(column.options.min, column.options.max);
+                            row[column.name] = this.random.integer(column.min, column.max);
                             break;
                         case 'decimal':
                         case 'dec':
                         case 'float':
                         case 'double':
-                            row[column.name] = this.random.real(column.options.min, column.options.max);
+                            row[column.name] = this.random.real(column.min, column.max);
                             break;
                         case 'date':
                         case 'datetime':
                         case 'timestamp':
-                            const min = column.options.min ? new Date(column.options.min) : new Date('01-01-1970');
-                            const max = column.options.max ? new Date(column.options.max) : new Date();
+                            const min = column.min ? new Date(column.min) : new Date('01-01-1970');
+                            const max = column.max ? new Date(column.max) : new Date();
                             row[column.name] = this.random.date(min, max);
                             break;
                         case 'time':
@@ -186,7 +188,7 @@ export class Generator {
                             row[column.name] = `${hours}:${minutes}:${seconds}`;
                             break;
                         case 'year':
-                            row[column.name] = this.random.integer(column.options.min, column.options.max);
+                            row[column.name] = this.random.integer(column.min, column.max);
                             break;
                         case 'varchar':
                         case 'char':
@@ -200,17 +202,17 @@ export class Generator {
                         case 'blob':
                         case 'mediumblob': // 16777215
                         case 'longblob': // 4,294,967,295
-                            if (column.options.max >= 36 && column.options.unique) {
+                            if (column.max >= 36 && column.unique) {
                                 row[column.name] = this.random.uuid4();
                             } else {
-                                row[column.name] = this.random.string(this.random.integer(column.options.min, column.options.max));
+                                row[column.name] = this.random.string(this.random.integer(column.min, column.max));
                             }
                             break;
                         case 'enum':
-                            row[column.name] = Math.floor(this.random.realZeroToOneExclusive() * (column.options.max)) + 1;
+                            row[column.name] = Math.floor(this.random.realZeroToOneExclusive() * (column.max)) + 1;
                             break;
                     }
-                    if (column.options.nullable && this.random.realZeroToOneExclusive() <= 0.1) row[column.name] = null;
+                    if (column.nullable && this.random.realZeroToOneExclusive() <= 0.1) row[column.name] = null;
                 }
                 rows.push(row);
                 currentTableRow++;
