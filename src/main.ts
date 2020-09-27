@@ -96,10 +96,19 @@ class Main extends CliMainClass {
             logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
         }
         const customizedSchema = CustomizedSchema.create(schema, customSchema);
+
+        this.generator = new Generator(this.dbConnector, customizedSchema, this.progressEventHandler());
+
+        await this.dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
+        await this.generator.fillTables(this.reset);
+        this.dbConnector.cleanBackupTriggers();
+    }
+
+    progressEventHandler() {
         let previousEvent: ProgressEvent = {} as any;
         let currentProgress: SingleBar;
         let lastComment: string = '';
-        this.generator = new Generator(this.dbConnector, customizedSchema, (event: ProgressEvent) => {
+        return (event: ProgressEvent) => {
             if (event.currentTable !== previousEvent.currentTable) {
                 lastComment = '';
                 if (currentProgress) currentProgress.stop();
@@ -118,12 +127,7 @@ class Main extends CliMainClass {
             }
             if (event.state === 'DONE') currentProgress.stop();
             previousEvent = event;
-        });
-
-
-        await this.dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
-        await this.generator.fillTables(this.reset);
-        this.dbConnector.cleanBackupTriggers();
+        };
     }
 
     @KeyPress('n', Modifiers.NONE, 'Skip the current table. Only works during data generation phase.')
