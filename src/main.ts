@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter, KeyPress } from '@corteks/clify';
 import * as fs from 'fs-extra';
