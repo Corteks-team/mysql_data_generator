@@ -3,6 +3,27 @@ import { Schema } from '../src/schema/schema.class';
 import { CustomizedSchema } from '../src/schema/customized-schema.class';
 
 describe('CustomizedSchema', () => {
+    it('handle missing custom table', async () => {
+        const schema = new Schema();
+        schema.tables = [{
+            name: 'table1',
+            referencedTables: [],
+            columns: [
+                {
+                    name: 'column1',
+                    generator: 'int',
+                    autoIncrement: false,
+                    max: 10,
+                    min: 10,
+                    nullable: true,
+                    unique: true,
+                    unsigned: true
+                }
+            ]
+        }];
+        const result = CustomizedSchema.create(schema);
+        expect(result.tables[0].maxLines).toBe(1000);
+    });
     it('overrides options with global settings', async () => {
         const schema = new Schema();
         schema.tables = [{
@@ -57,27 +78,6 @@ describe('CustomizedSchema', () => {
         }];
         const result = CustomizedSchema.create(schema, customSchema);
         expect(result.tables[0].maxLines).toBe(100);
-    });
-    it('handle missing custom table', async () => {
-        const schema = new Schema();
-        schema.tables = [{
-            name: 'table1',
-            referencedTables: [],
-            columns: [
-                {
-                    name: 'column1',
-                    generator: 'int',
-                    autoIncrement: false,
-                    max: 10,
-                    min: 10,
-                    nullable: true,
-                    unique: true,
-                    unsigned: true
-                }
-            ]
-        }];
-        const result = CustomizedSchema.create(schema);
-        expect(result.tables[0].maxLines).toBe(1000);
     });
     it('overrides column options', async () => {
         const schema = new Schema();

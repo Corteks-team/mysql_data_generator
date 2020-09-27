@@ -43,7 +43,6 @@ describe('Generator', () => {
         await generator.fillTables(true);
 
         expect(testConnector.executeRawQuery).toHaveBeenCalledWith('query');
-
     });
     it('launch after script', async () => {
         const customizedSchema = new CustomizedSchema();
