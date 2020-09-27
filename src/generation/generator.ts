@@ -41,12 +41,11 @@ export class Generator {
 
     private async getForeignKeyValues(table: CustomizedTable, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
         const columns = table.columns.filter((column) => column.foreignKey);
-        /** @TODO: parallelize foreign key gathering */
-        for (var c = 0; c < columns.length; c++) {
-            this.callback({ currentTable: table.name, step: 'foreignkeys', state: 'RUNNING', currentValue: c, max: columns.length });
-            const column = columns[c];
+
+        const foreignKeyPromises = columns.map((column, index) => {
+            this.callback({ currentTable: table.name, step: 'foreignkeys', state: 'RUNNING', currentValue: index, max: columns.length });
             const foreignKey = column.foreignKey!;
-            let values = await this.dbConnector.getValuesForForeignKeys(
+            return this.dbConnector.getValuesForForeignKeys(
                 table.name,
                 column.name,
                 foreignKey.table,
@@ -54,10 +53,12 @@ export class Generator {
                 runRows,
                 column.unique,
                 foreignKey.where,
-            );
-            tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
-            this.callback({ currentTable: table.name, step: 'foreignkeys', state: 'DONE', currentValue: c + 1, max: columns.length });
-        }
+            ).then((values) => {
+                tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
+            });
+        });
+        await Promise.all(foreignKeyPromises);
+        this.callback({ currentTable: table.name, step: 'foreignkeys', state: 'DONE', currentValue: columns.length, max: columns.length });
     }
 
     public async fillTables(reset: boolean = false) {
