@@ -1,34 +1,11 @@
-<<<<<<< WIP/poo:src/customized-schema.class.ts
 import { Column, ForeignKey, Schema, Table } from './schema.class';
 import { CustomSchema } from './custom-schema.class';
-=======
-import { CustomizedSchema, CustomizedTable } from '../customized-schema';
-import { databaseEngines } from '../database-engines';
->>>>>>> display deprecated warning during instantiation to prevent console log during process:src/analysis/customizer.ts
 
 export class CustomizedSchema extends CustomSchema {
     public tables: CustomizedTable[] = [];
 
-<<<<<<< WIP/poo:src/customized-schema.class.ts
     public static create(schema: Schema, customSchema: CustomSchema = new CustomSchema): CustomizedSchema {
         const customizedSchema = new CustomizedSchema();
-=======
-export default class Customizer {
-    constructor(
-        private customSchema: CustomSchema,
-    ) {
-        /** @todo: Remove deprecated warning */
-        let useDeprecatedLines = false;
-        this.customSchema.tables.forEach((table) => {
-            if (table.lines) {
-                useDeprecatedLines = true;
-                table.maxLines = table.lines;
-            }
-        });
-        if (useDeprecatedLines) console.warn('DEPRECATED: Table.lines is deprecated, please use table.maxLines instead.');
-        /****************/
-    }
->>>>>>> display deprecated warning during instantiation to prevent console log during process:src/analysis/customizer.ts
 
         customizedSchema.settings = customSchema.settings;
         let tables = schema.tables
@@ -53,12 +30,7 @@ export default class Customizer {
         let customizedTable: CustomizedTable = new CustomizedTable();
         customizedTable.name = table.name;
         customizedTable.referencedTables = table.referencedTables;
-<<<<<<< WIP/poo:src/customized-schema.class.ts
         const customTable = customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
-=======
-
-        const customTable = this.customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
->>>>>>> display deprecated warning during instantiation to prevent console log during process:src/analysis/customizer.ts
         if (customTable) {
             customizedTable.maxLines = customTable.maxLines || Infinity;
             customizedTable.addLines = customTable.addLines || Infinity;

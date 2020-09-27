@@ -87,7 +87,6 @@ class Main extends CliMainClass {
     }
 
     async generateData() {
-        if (!this.generator) return;
         if (!this.dbConnector) throw new Error('DB connection not ready');
         let schema: Schema = await Schema.fromJSON(fs.readJSONSync(path.join('settings', 'schema.json')));
         let customSchema: CustomSchema = new CustomSchema();

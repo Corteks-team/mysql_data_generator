@@ -52,7 +52,7 @@ export class Generator {
                 foreignKey.table,
                 foreignKey.column,
                 runRows,
-                column.options.unique,
+                column.unique,
                 foreignKey.where,
             );
             tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
@@ -162,11 +162,11 @@ export class Generator {
                     }
                     if (column.foreignKey) {
                         const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
-                        if (currentTableRow >= foreignKeys.length && !column.options.nullable && column.options.unique) {
+                        if (currentTableRow >= foreignKeys.length && !column.nullable && column.unique) {
                             this.callback({ currentTable: table.name, step: 'generateData', state: 'RUNNING', currentValue: currentNbRows, max: maxLines, comment: colors.red(`${table.name}: Not enough values available for foreign key ${table.name}.${column.name}`) });
                             break BATCH_LOOP;
                         }
-                        if (currentTableRow >= foreignKeys.length && column.options.unique && column.options.nullable) continue;
+                        if (currentTableRow >= foreignKeys.length && column.unique && column.nullable) continue;
                         row[column.name] = foreignKeys[currentTableRow % foreignKeys.length];
                         continue;
                     }
