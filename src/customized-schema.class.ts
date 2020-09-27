@@ -61,7 +61,7 @@ export class CustomizedSchema extends CustomSchema {
                 const referencedTable = tables.find((t) => {
                     return t.name === tableName;
                 });
-                if (referencedTable) recursive(([] as any).concat(branch, referencedTable));
+                if (referencedTable) recursive(([] as CustomizedTable[]).concat(branch, referencedTable));
             };
 
             if (sortedTables.find((t) => t.name.toLowerCase() === table.name.toLowerCase())) return;

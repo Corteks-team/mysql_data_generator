@@ -136,7 +136,7 @@ export class Generator {
                         }
                         if (!(values instanceof Array)) {
                             Object.keys(values).forEach((key: string) => {
-                                let arr = new Array(Math.round((values as any)[key] * 100));
+                                let arr = new Array(Math.round((values as ValuesWithRatio)[key] * 100));
                                 arr = arr.fill(key);
                                 parsedValues = parsedValues.concat(arr);
                             });
