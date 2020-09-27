@@ -1,8 +1,9 @@
 import { TestConnector } from './test-connector';
 import { Generator } from '../src/generation/generator';
-import { logger } from './index';
-import { CustomizedSchema, CustomizedTable } from '../src/customized-schema';
+import { CustomizedSchema, CustomizedTable } from '../src/customized-schema.class';
+import { getLogger } from 'log4js';
 
+const logger = getLogger();
 let testConnector: TestConnector;
 describe('Generator', () => {
     beforeEach(() => {
