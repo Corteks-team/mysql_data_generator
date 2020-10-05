@@ -1,7 +1,7 @@
-import { TestConnector } from './test-connector';
-import { Generator } from '../src/generation/generator';
+import { TestConnector } from '../test-connector';
+import { Filler } from '../../src/generation/filler';
 import { getLogger } from 'log4js';
-import { CustomizedSchema, CustomizedTable } from '../src/schema/customized-schema.class';
+import { CustomizedSchema, CustomizedTable } from '../../src/schema/customized-schema.class';
 
 const logger = getLogger();
 let testConnector: TestConnector;
@@ -16,13 +16,13 @@ describe('Generator', () => {
         customizedTable.addLines = 10;
         customizedSchema.tables.push(customizedTable);
 
-        const generator = new Generator(
+        const filler = new Filler(
             testConnector,
             customizedSchema,
             logger
         );
 
-        await generator.fillTables(true);
+        await filler.fillTables(true);
 
         expect(testConnector.emptyTable).toHaveBeenCalled();
 
@@ -35,7 +35,7 @@ describe('Generator', () => {
         customizedTable.before = ['query'];
         customizedSchema.tables.push(customizedTable);
 
-        const generator = new Generator(
+        const generator = new Filler(
             testConnector,
             customizedSchema,
             logger
@@ -54,7 +54,7 @@ describe('Generator', () => {
 
         testConnector.insert = jest.fn(async (table, rows) => 100);
 
-        const generator = new Generator(
+        const generator = new Filler(
             testConnector,
             customizedSchema,
             logger

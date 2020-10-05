@@ -3,9 +3,10 @@ import { Logger } from 'log4js';
 import { CustomizedSchema, CustomizedTable } from '../schema/customized-schema.class';
 import { Table } from '../schema/schema.class';
 import { DatabaseConnector } from '../database/database-connector-builder';
-import { Generators } from "./generators";
+import { AbstractGenerator, Generators } from "./generators/generators";
+import { BitGenerator, BooleanGenerator, DateGenerator, IntegerGenerator, RealGenerator, StringGenerator, TimeGenerator } from './generators'
 
-export class Generator {
+export class Filler {
     private random: Random;
     private continue: boolean = false;
 
@@ -116,6 +117,38 @@ export class Generator {
 
         let currentTableRow = 0;
         this.logger.info(currentNbRows + ' / ' + maxLines);
+
+        const generators: AbstractGenerator<any>[] = []
+        for (var c = 0; c < table.columns.length; c++) {
+            const column = table.columns[c];
+            switch (column.generator) {
+                case Generators.bit:
+                    generators.push(new BitGenerator(this.random, table, column))
+                    break;
+                case Generators.boolean:
+                    generators.push(new BooleanGenerator(this.random, table, column))
+                    break;
+                case Generators.integer:
+                    generators.push(new IntegerGenerator(this.random, table, column))
+                    break;
+                case Generators.real:
+                    generators.push(new RealGenerator(this.random, table, column))
+                    break;
+                case Generators.date:
+                    generators.push(new DateGenerator(this.random, table, column))
+                    break;
+                case Generators.time:
+                    generators.push(new TimeGenerator(this.random, table, column))
+                    break;
+                case Generators.string:
+                    generators.push(new StringGenerator(this.random, table, column))
+                    break;
+                default:
+                case Generators.none:
+                    throw new Error(`No generator defined for column: ${table.name}.${column.name}`);
+            }
+        }
+
         TABLE_LOOP: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
 
@@ -150,41 +183,7 @@ export class Generator {
                         if (foreignKeys.length > 0) row[column.name] = foreignKeys[currentTableRow % foreignKeys.length];
                         continue;
                     }
-                    switch (column.generator) {
-                        case Generators.bit:
-                            row[column.name] = this.random.integer(0, Math.pow(2, column.max));
-                            break;
-                        case Generators.boolean:
-                            row[column.name] = this.random.bool();
-                            break;
-                        case Generators.integer:
-                            row[column.name] = this.random.integer(column.min, column.max);
-                            break;
-                        case Generators.real:
-                            row[column.name] = this.random.real(column.min, column.max);
-                            break;
-                        case Generators.date:
-                            const min = column.min ? new Date(column.min) : new Date('01-01-1970');
-                            const max = column.max ? new Date(column.max) : new Date();
-                            row[column.name] = this.random.date(min, max);
-                            break;
-                        case Generators.time:
-                            const hours = this.random.integer(-838, +838);
-                            const minutes = this.random.integer(-0, +59);
-                            const seconds = this.random.integer(-0, +59);
-                            row[column.name] = `${hours}:${minutes}:${seconds}`;
-                            break;
-                        case Generators.string:
-                            if (column.max >= 36 && column.unique) {
-                                row[column.name] = this.random.uuid4();
-                            } else {
-                                row[column.name] = this.random.string(this.random.integer(column.min, column.max));
-                            }
-                            break;
-                        default:
-                        case Generators.none:
-                            throw new Error(`No generator defined for column: ${table.name}.${column.name}`);
-                    }
+                    row[column.name] = generators[c].generate(currentTableRow, row);
                     if (column.nullable && this.random.realZeroToOneExclusive() <= 0.1) row[column.name] = null;
                 }
                 rows.push(row);
