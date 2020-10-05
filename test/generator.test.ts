@@ -1,7 +1,7 @@
 import { TestConnector } from './test-connector';
 import { Generator } from '../src/generation/generator';
-import { CustomizedSchema, CustomizedTable } from '../src/customized-schema.class';
 import { getLogger } from 'log4js';
+import { CustomizedSchema, CustomizedTable } from '../src/schema/customized-schema.class';
 
 const logger = getLogger();
 let testConnector: TestConnector;

@@ -1,7 +1,7 @@
 import { Column } from './schema.class';
 import { ValidateNested, IsArray, validateOrReject, IsEnum, IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type, plainToClass, classToPlain } from 'class-transformer';
-import { DatabaseEngines } from './database/database-connector-builder';
+import { DatabaseEngines } from '../database/database-engines';
 
 export class CustomSettings {
     @IsArray()

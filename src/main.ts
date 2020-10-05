@@ -3,12 +3,13 @@ import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter, KeyPress, Modifiers } from '@corteks/clify';
 import * as fs from 'fs-extra';
 import { Generator } from './generation/generator';
-import { DatabaseConnectorBuilder, DatabaseConnector, DatabaseEngines } from './database/database-connector-builder';
+import { DatabaseConnectorBuilder, DatabaseConnector } from './database/database-connector-builder';
 import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
-import { Schema } from './schema.class';
-import { CustomSchema } from './custom-schema.class';
-import { CustomizedSchema } from './customized-schema.class';
+import { Schema } from './schema/schema.class';
+import { CustomSchema } from './schema/custom-schema.class';
+import { CustomizedSchema } from './schema/customized-schema.class';
+import { DatabaseEngines } from './database/database-engines';
 
 const logger = getLogger();
 logger.level = "debug";
