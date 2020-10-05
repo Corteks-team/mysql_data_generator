@@ -30,25 +30,23 @@ export class Generator {
     }
 
     private async getForeignKeyValues(table: CustomizedTable, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
-        for (var c = 0; c < table.columns.length; c++) {
-            const column = table.columns[c];
-            if (column.foreignKey) {
-                const foreignKey = column.foreignKey;
-                let values = await this.dbConnector.getValuesForForeignKeys(
-                    table.name,
-                    column.name,
-                    column.foreignKey.table,
-                    column.foreignKey.column,
-                    runRows,
-                    column.unique,
-                    column.foreignKey.where,
-                );
-                if (values.length === 0 && !column.nullable) {
-                    throw new Error(`${table.name}: Not enough values available for foreign key ${foreignKey.table}.${foreignKey.column}`);
-                }
+        const columns = table.columns.filter((column) => column.foreignKey);
+
+        const foreignKeyPromises = columns.map((column, index) => {
+            const foreignKey = column.foreignKey!;
+            return this.dbConnector.getValuesForForeignKeys(
+                table.name,
+                column.name,
+                foreignKey.table,
+                foreignKey.column,
+                runRows,
+                column.unique,
+                foreignKey.where,
+            ).then((values) => {
                 tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
-            }
-        }
+            });
+        });
+        await Promise.all(foreignKeyPromises);
     }
 
     public async fillTables(reset: boolean = false) {
