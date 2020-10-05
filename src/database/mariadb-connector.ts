@@ -4,6 +4,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { Table, Column, Schema } from '../schema/schema.class';
 import { DatabaseConnector } from './database-connector-builder';
+import { Generators } from '../generation/generators';
 
 export class MariaDBConnector implements DatabaseConnector {
     private dbConnection: Knex;
@@ -115,19 +116,18 @@ export class MariaDBConnector implements DatabaseConnector {
         table.columns = columns.map((mysqlColumn: MySQLColumn) => {
             const column = new Column();
             column.name = mysqlColumn.COLUMN_NAME;
-            column.generator = mysqlColumn.DATA_TYPE;
             if (mysqlColumn.COLUMN_KEY && mysqlColumn.COLUMN_KEY.match(/PRI|UNI/ig)) column.unique = true;
             if (mysqlColumn.IS_NULLABLE === 'YES') column.nullable = true;
             column.max = mysqlColumn.CHARACTER_MAXIMUM_LENGTH || mysqlColumn.NUMERIC_PRECISION || 255;
             if (mysqlColumn.COLUMN_TYPE && mysqlColumn.COLUMN_TYPE.includes('unsigned')) column.unsigned = true;
             if (mysqlColumn.EXTRA && mysqlColumn.EXTRA.includes('auto_increment')) column.autoIncrement = true;
             switch (mysqlColumn.DATA_TYPE) {
-                case 'bit':
-                    break;
                 case 'bool':
                 case 'boolean':
+                    column.generator = Generators.boolean;
                     break;
                 case 'smallint':
+                    column.generator = Generators.integer;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 65535;
@@ -137,6 +137,7 @@ export class MariaDBConnector implements DatabaseConnector {
                     }
                     break;
                 case 'mediumint':
+                    column.generator = Generators.integer;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 16777215;
@@ -146,6 +147,7 @@ export class MariaDBConnector implements DatabaseConnector {
                     }
                     break;
                 case 'tinyint':
+                    column.generator = Generators.integer;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 255;
@@ -157,6 +159,7 @@ export class MariaDBConnector implements DatabaseConnector {
                 case 'int':
                 case 'integer':
                 case 'bigint':
+                    column.generator = Generators.integer;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 2147483647;
@@ -169,6 +172,7 @@ export class MariaDBConnector implements DatabaseConnector {
                 case 'dec':
                 case 'float':
                 case 'double':
+                    column.generator = Generators.real;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 2147483647;
@@ -180,12 +184,15 @@ export class MariaDBConnector implements DatabaseConnector {
                 case 'date':
                 case 'datetime':
                 case 'timestamp':
+                    column.generator = Generators.date;
                     column.minDate = '01-01-1970';
                     column.maxDate = undefined;
                     break;
                 case 'time':
+                    column.generator = Generators.time;
                     break;
                 case 'year':
+                    column.generator = Generators.integer;
                     column.min = 1901;
                     column.max = 2155;
                     break;
@@ -200,9 +207,15 @@ export class MariaDBConnector implements DatabaseConnector {
                 case 'blob':
                 case 'mediumblob': // 16777215
                 case 'longblob': // 4,294,967,295
+                    column.generator = Generators.string;
                     break;
+                case 'bit':
                 case 'set':
+                    column.generator = Generators.bit;
+                    column.max = mysqlColumn.NUMERIC_PRECISION;
+                    break;
                 case 'enum':
+                    column.generator = Generators.integer;
                     column.max = mysqlColumn.NUMERIC_PRECISION;
                     break;
             }

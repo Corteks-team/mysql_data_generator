@@ -1,5 +1,6 @@
 import { IsArray, ValidateNested, IsString, IsBoolean, IsNumber, IsOptional, validateOrReject } from 'class-validator';
 import { Type, plainToClass, classToPlain } from 'class-transformer';
+import { Generators } from '../generation/generators';
 
 export class Schema {
     @IsArray()
@@ -44,7 +45,7 @@ export class Column {
     @IsString()
     name: string = '';
     @IsString()
-    generator: string = '';
+    generator: Generators = Generators.none;
     @IsBoolean()
     nullable: boolean = true;
     @IsBoolean()

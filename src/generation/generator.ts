@@ -3,6 +3,7 @@ import { Logger } from 'log4js';
 import { CustomizedSchema, CustomizedTable } from '../schema/customized-schema.class';
 import { Table } from '../schema/schema.class';
 import { DatabaseConnector } from '../database/database-connector-builder';
+import { Generators } from "./generators";
 
 export class Generator {
     private random: Random;
@@ -150,65 +151,39 @@ export class Generator {
                         continue;
                     }
                     switch (column.generator) {
-                        case 'set':
-                        case 'bit':
+                        case Generators.bit:
                             row[column.name] = this.random.integer(0, Math.pow(2, column.max));
                             break;
-                        case 'bool':
-                        case 'boolean':
+                        case Generators.boolean:
                             row[column.name] = this.random.bool();
                             break;
-                        case 'smallint':
-                        case 'mediumint':
-                        case 'tinyint':
-                        case 'int':
-                        case 'integer':
-                        case 'bigint':
+                        case Generators.integer:
                             row[column.name] = this.random.integer(column.min, column.max);
                             break;
-                        case 'decimal':
-                        case 'dec':
-                        case 'float':
-                        case 'double':
+                        case Generators.real:
                             row[column.name] = this.random.real(column.min, column.max);
                             break;
-                        case 'date':
-                        case 'datetime':
-                        case 'timestamp':
+                        case Generators.date:
                             const min = column.min ? new Date(column.min) : new Date('01-01-1970');
                             const max = column.max ? new Date(column.max) : new Date();
                             row[column.name] = this.random.date(min, max);
                             break;
-                        case 'time':
+                        case Generators.time:
                             const hours = this.random.integer(-838, +838);
                             const minutes = this.random.integer(-0, +59);
                             const seconds = this.random.integer(-0, +59);
                             row[column.name] = `${hours}:${minutes}:${seconds}`;
                             break;
-                        case 'year':
-                            row[column.name] = this.random.integer(column.min, column.max);
-                            break;
-                        case 'varchar':
-                        case 'char':
-                        case 'binary':
-                        case 'varbinary':
-                        case 'tinytext':
-                        case 'text':
-                        case 'mediumtext':
-                        case 'longtext':
-                        case 'tinyblob':
-                        case 'blob':
-                        case 'mediumblob': // 16777215
-                        case 'longblob': // 4,294,967,295
+                        case Generators.string:
                             if (column.max >= 36 && column.unique) {
                                 row[column.name] = this.random.uuid4();
                             } else {
                                 row[column.name] = this.random.string(this.random.integer(column.min, column.max));
                             }
                             break;
-                        case 'enum':
-                            row[column.name] = Math.floor(this.random.realZeroToOneExclusive() * (column.max)) + 1;
-                            break;
+                        default:
+                        case Generators.none:
+                            throw new Error(`No generator defined for column: ${table.name}.${column.name}`);
                     }
                     if (column.nullable && this.random.realZeroToOneExclusive() <= 0.1) row[column.name] = null;
                 }
