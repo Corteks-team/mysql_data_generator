@@ -1,7 +1,7 @@
 import { CustomSchema } from '../src/schema/custom-schema.class';
 import { Schema } from '../src/schema/schema.class';
 import { CustomizedSchema } from '../src/schema/customized-schema.class';
-import { Generators } from '../src/generation/generators';
+import { Generators } from '../src/generation/generators/generators';
 
 describe('CustomizedSchema', () => {
     it('handle missing custom table', async () => {

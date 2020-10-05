@@ -4,7 +4,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { Table, Column, Schema } from '../schema/schema.class';
 import { DatabaseConnector } from './database-connector-builder';
-import { Generators } from '../generation/generators';
+import { Generators } from '../generation/generators/generators';
 
 export class MariaDBConnector implements DatabaseConnector {
     private dbConnection: Knex;

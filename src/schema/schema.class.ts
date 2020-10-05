@@ -1,6 +1,6 @@
 import { IsArray, ValidateNested, IsString, IsBoolean, IsNumber, IsOptional, validateOrReject } from 'class-validator';
 import { Type, plainToClass, classToPlain } from 'class-transformer';
-import { Generators } from '../generation/generators';
+import { Generators } from '../generation/generators/generators';
 
 export class Schema {
     @IsArray()
@@ -68,5 +68,8 @@ export class Column {
     @IsOptional()
     foreignKey?: ForeignKey;
     values?: Values;
+    @IsOptional()
+    @IsBoolean()
+    ascending?: boolean;
 }
 
