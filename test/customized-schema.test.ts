@@ -1,6 +1,7 @@
 import { CustomSchema } from '../src/schema/custom-schema.class';
 import { Schema } from '../src/schema/schema.class';
 import { CustomizedSchema } from '../src/schema/customized-schema.class';
+import { Generators } from '../src/generation/generators/generators';
 
 describe('CustomizedSchema', () => {
     it('handle missing custom table', async () => {
@@ -11,7 +12,7 @@ describe('CustomizedSchema', () => {
             columns: [
                 {
                     name: 'column1',
-                    generator: 'int',
+                    generator: Generators.integer,
                     autoIncrement: false,
                     max: 10,
                     min: 10,
@@ -32,7 +33,7 @@ describe('CustomizedSchema', () => {
             columns: [
                 {
                     name: 'column1',
-                    generator: 'int',
+                    generator: Generators.integer,
                     autoIncrement: false,
                     max: 10,
                     min: 10,
@@ -51,7 +52,8 @@ describe('CustomizedSchema', () => {
         });
         const result = CustomizedSchema.create(schema, customSchema);
         expect(result.tables[0].columns).toHaveLength(1);
-        expect(result.tables[0].columns[0].autoIncrement).toBeTruthy();
+        expect(result.tables[0].columns[0].max).toBe(10);
+        expect(result.tables[0].columns[0].autoIncrement).toBeFalsy();
     });
     it('overrides table options', async () => {
         const schema = new Schema();
@@ -61,7 +63,7 @@ describe('CustomizedSchema', () => {
             columns: [
                 {
                     name: 'column1',
-                    generator: 'int',
+                    generator: Generators.integer,
                     autoIncrement: false,
                     max: 10,
                     min: 10,
@@ -87,7 +89,7 @@ describe('CustomizedSchema', () => {
             columns: [
                 {
                     name: 'column1',
-                    generator: 'int',
+                    generator: Generators.integer,
                     autoIncrement: false,
                     max: 0,
                     min: 10,

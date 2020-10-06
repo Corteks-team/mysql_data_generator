@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter, KeyPress, Modifiers } from '@corteks/clify';
 import * as fs from 'fs-extra';
-import { Generator } from './generation/generator';
+import { Filler } from './generation/filler';
 import { DatabaseConnectorBuilder, DatabaseConnector } from './database/database-connector-builder';
 import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
@@ -35,7 +35,7 @@ class Main extends CliMainClass {
     private reset: boolean = false;
 
     private dbConnector: DatabaseConnector | undefined;
-    private generator: Generator | undefined;
+    private filler: Filler | undefined;
 
     async main(): Promise<number> {
         if (!this.database) throw new Error('Please provide a valid database name');
@@ -95,17 +95,17 @@ class Main extends CliMainClass {
             logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
         }
         const customizedSchema = CustomizedSchema.create(schema, customSchema);
-        this.generator = new Generator(this.dbConnector, customizedSchema, logger);
+        this.filler = new Filler(this.dbConnector, customizedSchema, logger);
 
         await this.dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
-        await this.generator.fillTables(this.reset);
+        await this.filler.fillTables(this.reset);
         this.dbConnector.cleanBackupTriggers();
     }
 
     @KeyPress('n', Modifiers.NONE, 'Skip the current table. Only works during data generation phase.')
     skipTable() {
-        if (!this.generator) return;
+        if (!this.filler) return;
         logger.info('Skipping...');
-        this.generator.gotoNextTable();
+        this.filler.gotoNextTable();
     }
 }

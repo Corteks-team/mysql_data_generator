@@ -45,7 +45,7 @@ export class CustomizedSchema extends CustomSchema {
                 customizedTable.referencedTables.push(column.foreignKey.table);
             }
             if (customColumn?.values) column.values = customColumn.values;
-            const globalSetting = customSchema.settings.options.find(o => o.dataTypes.includes(column.generator));
+            const globalSetting = customSchema.settings.options.find(o => o.generators.includes(column.generator));
             column = Object.assign({}, column, customColumn, globalSetting?.options);
             customizedTable.columns.push(column);
         });
