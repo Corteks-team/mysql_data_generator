@@ -30,6 +30,8 @@ export class CustomSettings {
     @IsNumber()
     @IsOptional()
     seed?: number;
+    @IsNumber()
+    maxRowsPerBatch: number = 1000;
 }
 
 export class CustomSchema {

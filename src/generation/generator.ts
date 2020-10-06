@@ -119,7 +119,7 @@ export class Generator {
             previousRunRows = currentNbRows;
 
             const rows = [];
-            const runRows = Math.min(1000, maxLines - currentNbRows);
+            const runRows = Math.min(this.schema.settings.maxRowsPerBatch, maxLines - currentNbRows);
 
             for (let currentBatchRow = 0; currentBatchRow < runRows; currentBatchRow++) {
                 const row: { [key: string]: any; } = {};
