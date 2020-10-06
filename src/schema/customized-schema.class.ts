@@ -32,8 +32,8 @@ export class CustomizedSchema extends CustomSchema {
         customizedTable.referencedTables = table.referencedTables;
         const customTable = customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
         if (customTable) {
-            customizedTable.maxLines = customTable.maxLines || Infinity;
-            customizedTable.addLines = customTable.addLines || Infinity;
+            customizedTable.maxLines = (customTable.maxLines !== undefined ? customTable.maxLines : Infinity);
+            customizedTable.addLines = (customTable.addLines !== undefined ? customTable.addLines : Infinity);
             customizedTable.disableTriggers = customTable.disableTriggers || false;
             customizedTable.before = customTable.before || [];
             customizedTable.after = customTable.after || [];
