@@ -99,11 +99,11 @@ export class Generator {
 
         let currentNbRows: number = await this.dbConnector.countLines(table);
         let maxLines = 0;
-        if (table.addLines) {
+        if (table.addLines !== undefined) {
             maxLines = currentNbRows + table.addLines;
             if (table.maxLines !== undefined) maxLines = Math.min(maxLines, table.maxLines);
         }
-        else if (table.maxLines) maxLines = table.maxLines;
+        else if (table.maxLines !== undefined) maxLines = table.maxLines;
         let insertedRows = 0;
 
         let deltaRows = maxLines - currentNbRows;
