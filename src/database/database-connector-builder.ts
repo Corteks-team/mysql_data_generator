@@ -1,6 +1,7 @@
 import { MariaDBConnector } from './mariadb-connector';
 import { Table, Schema, ForeignKey } from '../schema/schema.class';
 import { DatabaseEngines } from './database-engines';
+import * as URI from "uri-js";
 
 export interface DatabaseConnector {
     init(): Promise<void>;
@@ -22,51 +23,25 @@ export interface DatabaseConnector {
 }
 
 export class DatabaseConnectorBuilder {
-    private ip: string = '127.0.0.1';
-    private port: number = 3306;
-    private database: string = '';
-    private user: string = '';
-    private password: string = '';
+    private uriComponents: URI.URIComponents;
 
     constructor(
-        private engine: DatabaseEngines,
-    ) { }
+        private uri: string,
+    ) {
+        this.uriComponents = URI.parse(this.uri);
+    }
 
     public async build(): Promise<DatabaseConnector> {
-        switch (this.engine) {
+        let connector: DatabaseConnector;
+        switch (this.uriComponents.scheme) {
+            case DatabaseEngines.MYSQL:
             case DatabaseEngines.MARIADB:
-                const connector = new MariaDBConnector(
-                    this.ip,
-                    this.port,
-                    this.database,
-                    this.user,
-                    this.password
-                );
+                connector = new MariaDBConnector(this.uri);
                 await connector.init();
-                return connector;
+                break;
             default:
                 throw new Error('Unsupported engine.');
         }
-    }
-
-    setHost(ip: string) {
-        this.ip = ip;
-        return this;
-    }
-
-    setPort(port: number) {
-        this.port = port;
-        return this;
-    }
-
-    setDatabase(database: string) {
-        this.database = database;
-        return this;
-    }
-
-    setCredentials(user: string, password: string) {
-        this.user = user;
-        this.password = password;
-        return this;
+        return connector;
     }
 }

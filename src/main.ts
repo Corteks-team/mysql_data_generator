@@ -9,24 +9,14 @@ import * as JSONC from 'jsonc-parser';
 import { Schema } from './schema/schema.class';
 import { CustomSchema } from './schema/custom-schema.class';
 import { CustomizedSchema } from './schema/customized-schema.class';
-import { DatabaseEngines } from './database/database-engines';
 
 const logger = getLogger();
 logger.level = "debug";
 
 @CliMain
 class Main extends CliMainClass {
-    @CliParameter({ alias: 'db', demandOption: true, description: 'database', })
-    private database: string | undefined = undefined;
-
-    @CliParameter({ alias: 'h' })
-    private host: string = '127.0.0.1:3306';
-
-    @CliParameter()
-    private user: string = 'root';
-
-    @CliParameter()
-    private password: string = 'root';
+    @CliParameter({ alias: 'uri', demandOption: true, description: 'Database URI. Eg: mysql://user:password@127.0.0.1:3306/database' })
+    private uri: string | undefined = undefined;
 
     @CliParameter()
     private analyse: boolean = false;
@@ -38,16 +28,11 @@ class Main extends CliMainClass {
     private filler: Filler | undefined;
 
     async main(): Promise<number> {
-        if (!this.database) throw new Error('Please provide a valid database name');
-        const [host, port] = this.host.split(':');
-        const dbConnectorBuilder = new DatabaseConnectorBuilder(DatabaseEngines.MARIADB);
+        if (!this.uri) throw new Error('Please provide a valid database uri');
+
+        const dbConnectorBuilder = new DatabaseConnectorBuilder(this.uri);
         try {
-            this.dbConnector = await dbConnectorBuilder
-                .setHost(host)
-                .setPort(parseInt(port, 10))
-                .setDatabase(this.database)
-                .setCredentials(this.user, this.password)
-                .build();
+            this.dbConnector = await dbConnectorBuilder.build();
         } catch (err) {
             logger.error(err.message);
             return 1;

@@ -5,30 +5,25 @@ import * as path from 'path';
 import { Table, Column, Schema } from '../schema/schema.class';
 import { DatabaseConnector } from './database-connector-builder';
 import { Generators } from '../generation/generators/generators';
+import * as URI from "uri-js";
 
 export class MariaDBConnector implements DatabaseConnector {
     private dbConnection: Knex;
     private triggers: Trigger[] = [];
     private logger = getLogger();
     private triggerBackupFile: string = path.join('settings', 'triggers.json');
+    private uriComponents: URI.URIComponents;
+    private database: string;
 
     constructor(
-        ip: string,
-        port: number,
-        private database: string,
-        user: string,
-        password: string
+        private uri: string
     ) {
+        this.uriComponents = URI.parse(this.uri);
+        if (!this.uriComponents.path) throw new Error('Please sepcify database name');
+        this.database = this.uriComponents.path.replace('/', '');
         this.dbConnection = Knex({
             client: 'mysql',
-            connection: {
-                database: database,
-                host: ip,
-                port: port,
-                user: user,
-                password: password,
-                supportBigNumbers: true,
-            },
+            connection: this.uri,
             log: {
                 warn: (message) => {
                     this.logger.warn(message);
