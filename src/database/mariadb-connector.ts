@@ -56,6 +56,7 @@ export class MariaDBConnector implements DatabaseConnector {
         this.logger.warn(`SET GLOBAL foreign_key_checks = ON;`);
         this.logger.warn(`SET GLOBAL autocommit = ON;`);
         this.logger.warn(`SET GLOBAL unique_checks = ON;`);
+        this.logger.info(`To improve performances further you can update innodb_autoinc_lock_mode = 0 in your my.ini.`)
     }
 
     async countLines(table: Table) {
