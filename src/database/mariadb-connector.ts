@@ -53,6 +53,13 @@ export class MariaDBConnector implements DatabaseConnector {
 
     public async init(): Promise<void> {
         await this.dbConnection.raw('SET GLOBAL foreign_key_checks = OFF;');
+        await this.dbConnection.raw('SET GLOBAL autocommit = OFF;');
+        await this.dbConnection.raw('SET GLOBAL unique_checks = OFF;');
+        this.logger.warn(`For performance foreign_key_checks, autocommit and unique_checks are disabled during insert.`);
+        this.logger.warn(`They should be set back on at the end. But in case of crash you should set them back manually by using:`);
+        this.logger.warn(`SET GLOBAL foreign_key_checks = ON;`);
+        this.logger.warn(`SET GLOBAL autocommit = ON;`);
+        this.logger.warn(`SET GLOBAL unique_checks = ON;`);
     }
 
     async countLines(table: Table) {
@@ -60,7 +67,6 @@ export class MariaDBConnector implements DatabaseConnector {
     }
 
     async emptyTable(table: Table) {
-        await this.dbConnection.raw('SET FOREIGN_KEY_CHECKS = 0;');
         await this.dbConnection.raw(`DELETE FROM ${table.name}`);
         await this.dbConnection.raw(`ALTER TABLE ${table.name} AUTO_INCREMENT = 1;`);
     }
@@ -81,6 +87,8 @@ export class MariaDBConnector implements DatabaseConnector {
 
     async destroy() {
         await this.dbConnection.raw('SET GLOBAL foreign_key_checks = ON;');
+        await this.dbConnection.raw('SET GLOBAL autocommit = ON;');
+        await this.dbConnection.raw('SET GLOBAL unique_checks = ON;');
         await this.dbConnection.destroy();
     }
 
