@@ -2,6 +2,7 @@ import { Column } from './schema.class';
 import { ValidateNested, IsArray, validateOrReject, IsEnum, IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type, plainToClass, classToPlain } from 'class-transformer';
 import { DatabaseEngines } from '../database/database-engines';
+import { Generators } from '../generation/generators/generators';
 
 export class CustomSettings {
     @IsArray()
@@ -23,7 +24,7 @@ export class CustomSettings {
     values: { [key: string]: any[]; } = {};
     options: Array<
         {
-            dataTypes: string[],
+            generators: Generators[],
             options: Partial<Column>;
         }
     > = [];
