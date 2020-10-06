@@ -34,6 +34,7 @@
         "moment": "^2.29.0",
         "mysql": "^2.18.1",
         "random-js": "^2.1.0",
+        "uri-js": "^4.4.0",
         "yargs": "^15.4.1"
     },
     "devDependencies": {
