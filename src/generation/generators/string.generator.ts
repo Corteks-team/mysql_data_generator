@@ -1,9 +1,6 @@
 import { AbstractGenerator } from "./generators";
 
 export class StringGenerator extends AbstractGenerator<string> {
-    public init(): AbstractGenerator<string> {
-        throw new Error("Method not implemented.");
-    }
     generate(rowIndex: number, row: { [key: string]: any; }) {
         if (this.column.max >= 36 && this.column.unique) {
             return this.random.uuid4();

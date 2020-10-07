@@ -1,9 +1,6 @@
 import { AbstractGenerator } from "./generators";
 
 export class TimeGenerator extends AbstractGenerator<string> {
-    public init(): AbstractGenerator<string> {
-        throw new Error("Method not implemented.");
-    }
     generate(rowIndex: number, row: { [key: string]: any; }) {
         const hours = this.random.integer(-838, +838);
         const minutes = this.random.integer(-0, +59);

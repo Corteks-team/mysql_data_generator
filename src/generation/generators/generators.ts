@@ -19,7 +19,7 @@ export abstract class AbstractGenerator<T>{
         protected column: CustomizedColumn,
     ) { }
 
-    public abstract init(): AbstractGenerator<T>;
+    public init(): void { }
 
     public abstract generate(rowIndex: number, row: { [key: string]: any; }): T;
 }
