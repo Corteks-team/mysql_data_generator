@@ -45,7 +45,7 @@ describe('CustomizedSchema', () => {
         }];
         const customSchema = new CustomSchema();
         customSchema.settings.options.push({
-            dataTypes: ['int'],
+            generators: [Generators.integer],
             options: {
                 autoIncrement: true,
             }
@@ -53,7 +53,7 @@ describe('CustomizedSchema', () => {
         const result = CustomizedSchema.create(schema, customSchema);
         expect(result.tables[0].columns).toHaveLength(1);
         expect(result.tables[0].columns[0].max).toBe(10);
-        expect(result.tables[0].columns[0].autoIncrement).toBeFalsy();
+        expect(result.tables[0].columns[0].autoIncrement).toBeTruthy();
     });
     it('overrides table options', async () => {
         const schema = new Schema();
