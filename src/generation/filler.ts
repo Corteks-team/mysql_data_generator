@@ -4,7 +4,7 @@ import { CustomizedSchema, CustomizedTable } from '../schema/customized-schema.c
 import { Table } from '../schema/schema.class';
 import { DatabaseConnector } from '../database/database-connector-builder';
 import { AbstractGenerator, Generators } from "./generators/generators";
-import { BitGenerator, BooleanGenerator, DateGenerator, IntegerGenerator, RealGenerator, StringGenerator, TimeGenerator } from './generators'
+import { BitGenerator, BooleanGenerator, DateGenerator, IntegerGenerator, RealGenerator, StringGenerator, TimeGenerator } from './generators';
 
 export class Filler {
     private random: Random;
@@ -118,35 +118,36 @@ export class Filler {
         let currentTableRow = 0;
         this.logger.info(currentNbRows + ' / ' + maxLines);
 
-        const generators: AbstractGenerator<any>[] = []
+        const generators: AbstractGenerator<any>[] = [];
         for (var c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
             switch (column.generator) {
                 case Generators.bit:
-                    generators.push(new BitGenerator(this.random, table, column))
+                    generators.push(new BitGenerator(this.random, table, column));
                     break;
                 case Generators.boolean:
-                    generators.push(new BooleanGenerator(this.random, table, column))
+                    generators.push(new BooleanGenerator(this.random, table, column));
                     break;
                 case Generators.integer:
-                    generators.push(new IntegerGenerator(this.random, table, column))
+                    generators.push(new IntegerGenerator(this.random, table, column));
                     break;
                 case Generators.real:
-                    generators.push(new RealGenerator(this.random, table, column))
+                    generators.push(new RealGenerator(this.random, table, column));
                     break;
                 case Generators.date:
-                    generators.push(new DateGenerator(this.random, table, column))
+                    generators.push(new DateGenerator(this.random, table, column));
                     break;
                 case Generators.time:
-                    generators.push(new TimeGenerator(this.random, table, column))
+                    generators.push(new TimeGenerator(this.random, table, column));
                     break;
                 case Generators.string:
-                    generators.push(new StringGenerator(this.random, table, column))
+                    generators.push(new StringGenerator(this.random, table, column));
                     break;
                 default:
                 case Generators.none:
                     throw new Error(`No generator defined for column: ${table.name}.${column.name}`);
             }
+            generators[c].init();
         }
 
         TABLE_LOOP: while (currentNbRows < maxLines) {
