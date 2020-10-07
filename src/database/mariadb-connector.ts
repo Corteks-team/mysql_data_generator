@@ -6,6 +6,7 @@ import { Table, Column, Schema } from '../schema/schema.class';
 import { DatabaseConnector } from './database-connector-builder';
 import { Generators } from '../generation/generators/generators';
 import * as URI from "uri-js";
+import { Connection, MysqlError } from 'mysql';
 
 export class MariaDBConnector implements DatabaseConnector {
     private dbConnection: Knex;
@@ -37,6 +38,21 @@ export class MariaDBConnector implements DatabaseConnector {
                 debug: (message) => {
                     this.logger.debug(message);
                 }
+            },
+            pool: {
+                afterCreate: (conn: Connection, done: (err: MysqlError | null, conn: Connection) => void) => {
+                    conn.query('SET foreign_key_checks = OFF;', (err) => {
+                        if (err) done(err, conn);
+                        else
+                            conn.query('SET autocommit = OFF;', (err) => {
+                                if (err) done(err, conn);
+                                else
+                                    conn.query('SET unique_checks = OFF;', (err) => {
+                                        done(err, conn);
+                                    });
+                            });
+                    });
+                }
             }
         }).on('query-error', (err) => {
             this.logger.error(err.code, err.name);
@@ -48,15 +64,9 @@ export class MariaDBConnector implements DatabaseConnector {
     }
 
     public async init(): Promise<void> {
-        await this.dbConnection.raw('SET GLOBAL foreign_key_checks = OFF;');
-        await this.dbConnection.raw('SET GLOBAL autocommit = OFF;');
-        await this.dbConnection.raw('SET GLOBAL unique_checks = OFF;');
         this.logger.warn(`For performance foreign_key_checks, autocommit and unique_checks are disabled during insert.`);
-        this.logger.warn(`They should be set back on at the end. But in case of crash you should set them back manually by using:`);
-        this.logger.warn(`SET GLOBAL foreign_key_checks = ON;`);
-        this.logger.warn(`SET GLOBAL autocommit = ON;`);
-        this.logger.warn(`SET GLOBAL unique_checks = ON;`);
-        this.logger.info(`To improve performances further you can update innodb_autoinc_lock_mode = 0 in your my.ini.`)
+        this.logger.warn(`They are disabled per connections and should not alter your configuration.`);
+        this.logger.info(`To improve performances further you can update innodb_autoinc_lock_mode = 0 in your my.ini.`);
     }
 
     async countLines(table: Table) {
@@ -79,13 +89,11 @@ export class MariaDBConnector implements DatabaseConnector {
             .toQuery()
             .replace('insert into', 'insert ignore into');
         const insertResult = await this.dbConnection.raw(query);
+        await this.dbConnection.raw('COMMIT;');
         return insertResult[0].affectedRows;
     }
 
     async destroy() {
-        await this.dbConnection.raw('SET GLOBAL foreign_key_checks = ON;');
-        await this.dbConnection.raw('SET GLOBAL autocommit = ON;');
-        await this.dbConnection.raw('SET GLOBAL unique_checks = ON;');
         await this.dbConnection.destroy();
     }
 
