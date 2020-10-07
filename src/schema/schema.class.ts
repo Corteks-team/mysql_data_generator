@@ -41,6 +41,11 @@ export class ForeignKey {
     column: string = '';
 }
 
+export enum Monotonic {
+    ASC,
+    DESC,
+}
+
 export class Column {
     @IsString()
     name: string = '';
@@ -69,7 +74,7 @@ export class Column {
     foreignKey?: ForeignKey;
     values?: Values;
     @IsOptional()
-    @IsBoolean()
-    ascending?: boolean;
+    @IsString()
+    monotonic?: Monotonic;
 }
 
