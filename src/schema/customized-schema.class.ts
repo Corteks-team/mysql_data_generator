@@ -7,7 +7,7 @@ export class CustomizedSchema extends CustomSchema {
     public static create(schema: Schema, customSchema: CustomSchema = new CustomSchema): CustomizedSchema {
         const customizedSchema = new CustomizedSchema();
 
-        customizedSchema.settings = customSchema.settings;
+        customizedSchema.settings = Object.assign({}, customizedSchema.settings, customSchema.settings);
         let tables = schema.tables
             .filter((table) => {
                 return !customSchema.settings.ignoredTables.includes(table.name)
