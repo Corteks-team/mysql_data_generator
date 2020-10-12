@@ -108,9 +108,10 @@ export class Filler {
         else if (table.maxLines !== undefined) maxLines = table.maxLines;
         let insertedRows = 0;
 
-        let deltaRows = maxLines - currentNbRows;
+        table.deltaRows = maxLines - currentNbRows;
+        if (table.deltaRows <= 0) return 0;
         try {
-            await this.getForeignKeyValues(table, tableForeignKeyValues, deltaRows);
+            await this.getForeignKeyValues(table, tableForeignKeyValues, table.deltaRows);
         } catch (ex) {
             this.logger.warn(ex.message);
         }

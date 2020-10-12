@@ -70,6 +70,7 @@ export class CustomizedSchema extends CustomSchema {
                 disableTriggers: table.disableTriggers,
                 maxLines: table.maxLines,
                 addLines: table.addLines,
+                deltaRows: table.addLines || table.maxLines,
                 columns: table.columns,
                 before: table.before,
                 after: table.after,
@@ -91,9 +92,10 @@ export class CustomizedTable {
     columns: CustomizedColumn[] = [];
     referencedTables: string[] = [];
     before: string[] = [];
-    after: string[] = [];
+    after: string[] = [];    
     maxLines: number = 1000;
     addLines: number = Infinity;
+    deltaRows: number = 0;
     disableTriggers: boolean = false;
 }
 

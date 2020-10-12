@@ -11,9 +11,7 @@ export class DateGenerator extends AbstractGenerator<Date> {
     }
 
     monotonic(order: Monotonic) {
-        if (!this.table.maxLines || this.table.maxLines === Infinity) throw new Error(`DateGenerator: Monotonic date require a defined table.maxLines: ${this.table.name}`);
-
-        const dates = new Array(this.table.maxLines)
+        const dates = new Array(this.table.deltaRows)
             .fill(true)
             .map(() => this.generateRandomDate());
         if (order === Monotonic.ASC) {
