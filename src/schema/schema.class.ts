@@ -42,8 +42,9 @@ export class ForeignKey {
 }
 
 export enum Monotonic {
-    ASC,
-    DESC,
+    ASC = "ASC",
+    DESC = "DESC",
+    NONE = "NONE"
 }
 
 export class Column {
@@ -75,6 +76,5 @@ export class Column {
     values?: Values;
     @IsOptional()
     @IsString()
-    monotonic?: Monotonic;
+    monotonic: Monotonic = Monotonic.NONE;
 }
-

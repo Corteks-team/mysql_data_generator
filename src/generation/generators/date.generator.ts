@@ -5,7 +5,7 @@ export class DateGenerator extends AbstractGenerator<Date> {
     protected values: Date[] = [];
 
     init() {
-        if (this.column.monotonic !== undefined) {
+        if (this.column.monotonic !== undefined && this.column.monotonic !== Monotonic.NONE) {
             this.monotonic(this.column.monotonic);
         }
     }
@@ -29,7 +29,9 @@ export class DateGenerator extends AbstractGenerator<Date> {
     }
 
     generate(rowIndex: number, row: { [key: string]: any; }): Date {
-        if (this.values[rowIndex]) return this.values[rowIndex];
-        return this.generateRandomDate();
+        let result: Date;
+        if (this.values[rowIndex]) result = this.values[rowIndex];
+        else result = this.generateRandomDate();
+        return result
     }
 }
