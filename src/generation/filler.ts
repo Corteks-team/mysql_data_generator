@@ -157,7 +157,7 @@ export class Filler {
             const rows = [];
             const runRows = Math.min(this.schema.settings.maxRowsPerBatch, maxLines - currentNbRows);
 
-            for (let currentBatchRow = 0; currentBatchRow < runRows; currentBatchRow++) {
+            BATCH_LOOP: for (let currentBatchRow = 0; currentBatchRow < runRows; currentBatchRow++) {
                 const row: { [key: string]: any; } = {};
                 for (var c = 0; c < table.columns.length; c++) {
                     const column = table.columns[c];
@@ -182,7 +182,15 @@ export class Filler {
                     }
                     if (column.foreignKey) {
                         const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
-                        if (foreignKeys.length > 0) row[column.name] = foreignKeys[currentTableRow % foreignKeys.length];
+                        if (currentTableRow < foreignKeys.length) row[column.name] = foreignKeys[currentTableRow];
+                        else if (!column.unique) {
+                            row[column.name] = foreignKeys[currentTableRow % foreignKeys.length];
+                        } else {
+                            if (column.nullable === false) {
+                                console.warn(`Not enough FK for column: ${table.name}.${column.name}`);
+                                break BATCH_LOOP;
+                            }
+                        }
                         continue;
                     }
                     row[column.name] = generators[c].generate(currentTableRow, row);
