@@ -121,7 +121,7 @@ export class MariaDBConnector implements DatabaseConnector {
             const column = new Column();
             column.name = mysqlColumn.COLUMN_NAME;
             if (mysqlColumn.COLUMN_KEY && mysqlColumn.COLUMN_KEY.match(/PRI|UNI/ig)) column.unique = true;
-            if (mysqlColumn.IS_NULLABLE === 'YES') column.nullable = true;
+            column.nullable = mysqlColumn.IS_NULLABLE === 'YES';
             column.max = mysqlColumn.CHARACTER_MAXIMUM_LENGTH || mysqlColumn.NUMERIC_PRECISION || 255;
             if (mysqlColumn.COLUMN_TYPE && mysqlColumn.COLUMN_TYPE.includes('unsigned')) column.unsigned = true;
             if (mysqlColumn.EXTRA && mysqlColumn.EXTRA.includes('auto_increment')) column.autoIncrement = true;
