@@ -1,48 +1,45 @@
 import { CustomSchema } from '../src/schema/custom-schema.class';
-import { Schema } from '../src/schema/schema.class';
+import { Schema, Table, Column } from '../src/schema/schema.class';
 import { CustomizedSchema } from '../src/schema/customized-schema.class';
 import { Generators } from '../src/generation/generators/generators';
+import { Builder } from '../src/builder';
 
 describe('CustomizedSchema', () => {
     it('handle missing custom table', async () => {
+        const column = new Builder(Column)
+            .set('name', 'column1')
+            .build();
+
+        const table = new Builder(Table)
+            .set('name', 'table1')
+            .set('columns', [
+                column
+            ])
+            .build();
+
         const schema = new Schema();
-        schema.tables = [{
-            name: 'table1',
-            referencedTables: [],
-            columns: [
-                {
-                    name: 'column1',
-                    generator: Generators.integer,
-                    autoIncrement: false,
-                    max: 10,
-                    min: 10,
-                    nullable: true,
-                    unique: true,
-                    unsigned: true
-                }
-            ]
-        }];
+        schema.tables = [table];
+
         const result = CustomizedSchema.create(schema);
         expect(result.tables[0].maxLines).toBe(1000);
     });
     it('overrides options with global settings', async () => {
+        const column = new Builder(Column)
+            .set('name', 'column1')
+            .set('generator', Generators.integer)
+            .set('max', 10)
+            .build();
+
+        const table = new Builder(Table)
+            .set('name', 'table1')
+            .set('columns', [
+                column
+            ])
+            .build();
+
         const schema = new Schema();
-        schema.tables = [{
-            name: 'table1',
-            referencedTables: [],
-            columns: [
-                {
-                    name: 'column1',
-                    generator: Generators.integer,
-                    autoIncrement: false,
-                    max: 10,
-                    min: 10,
-                    nullable: true,
-                    unique: true,
-                    unsigned: true
-                }
-            ]
-        }];
+        schema.tables = [table];
+
         const customSchema = new CustomSchema();
         customSchema.settings.options.push({
             generators: [Generators.integer],
@@ -56,23 +53,20 @@ describe('CustomizedSchema', () => {
         expect(result.tables[0].columns[0].autoIncrement).toBeTruthy();
     });
     it('overrides table options', async () => {
+        const column = new Builder(Column)
+            .set('name', 'column1')
+            .build();
+
+        const table = new Builder(Table)
+            .set('name', 'table1')
+            .set('columns', [
+                column
+            ])
+            .build();
+
         const schema = new Schema();
-        schema.tables = [{
-            name: 'table1',
-            referencedTables: [],
-            columns: [
-                {
-                    name: 'column1',
-                    generator: Generators.integer,
-                    autoIncrement: false,
-                    max: 10,
-                    min: 10,
-                    nullable: true,
-                    unique: true,
-                    unsigned: true
-                }
-            ]
-        }];
+        schema.tables = [table];
+
         const customSchema = new CustomSchema();
         customSchema.tables = [{
             name: 'table1',
@@ -82,23 +76,20 @@ describe('CustomizedSchema', () => {
         expect(result.tables[0].maxLines).toBe(100);
     });
     it('overrides column options', async () => {
+        const column = new Builder(Column)
+            .set('name', 'column1')
+            .build();
+
+        const table = new Builder(Table)
+            .set('name', 'table1')
+            .set('columns', [
+                column
+            ])
+            .build();
+
         const schema = new Schema();
-        schema.tables = [{
-            name: 'table1',
-            referencedTables: [],
-            columns: [
-                {
-                    name: 'column1',
-                    generator: Generators.integer,
-                    autoIncrement: false,
-                    max: 0,
-                    min: 10,
-                    nullable: true,
-                    unique: true,
-                    unsigned: true
-                }
-            ]
-        }];
+        schema.tables = [table];
+
         const customSchema = new CustomSchema();
         customSchema.tables = [{
             name: 'table1',
