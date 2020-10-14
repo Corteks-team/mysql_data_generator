@@ -31,26 +31,6 @@ export class Filler {
         await this.dbConnector.emptyTable(table);
     }
 
-    private async getForeignKeyValues(table: CustomizedTable, tableForeignKeyValues: { [key: string]: any[]; } = {}, runRows: number) {
-        const columns = table.columns.filter((column) => column.foreignKey);
-
-        const foreignKeyPromises = columns.map((column, index) => {
-            const foreignKey = column.foreignKey!;
-            return this.dbConnector.getValuesForForeignKeys(
-                table.name,
-                column.name,
-                foreignKey.table,
-                foreignKey.column,
-                runRows,
-                column.unique,
-                foreignKey.where,
-            ).then((values) => {
-                tableForeignKeyValues[`${column.name}_${foreignKey.table}_${foreignKey.column}`] = values;
-            });
-        });
-        await Promise.all(foreignKeyPromises);
-    }
-
     public async fillTables(reset: boolean = false) {
         this.beforeAll();
         for (const table of this.schema.tables) {
@@ -95,8 +75,6 @@ export class Filler {
     }
 
     private async generateData(table: CustomizedTable): Promise<number> {
-        const tableForeignKeyValues: { [key: string]: any[]; } = {};
-
         let previousRunRows: number = -1;
 
         let currentNbRows: number = await this.dbConnector.countLines(table);
@@ -110,11 +88,6 @@ export class Filler {
 
         table.deltaRows = maxLines - currentNbRows;
         if (table.deltaRows <= 0) return 0;
-        try {
-            await this.getForeignKeyValues(table, tableForeignKeyValues, table.deltaRows);
-        } catch (ex) {
-            this.logger.warn(ex.message);
-        }
 
         let currentTableRow = 0;
         this.logger.info(currentNbRows + ' / ' + maxLines);
@@ -151,8 +124,9 @@ export class Filler {
                 case Generators.none:
                     throw new Error(`No generator defined for column: ${table.name}.${column.name}`);
             }
-            generators[c].init();
         }
+
+        await Promise.all(generators.map((g) => g.init()));
 
         TABLE_LOOP: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;
@@ -166,20 +140,13 @@ export class Filler {
                     const column = table.columns[c];
                     if (column.autoIncrement) continue;
 
-                    if (column.foreignKey) {
-                        const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
-                        if (currentTableRow < foreignKeys.length) row[column.name] = foreignKeys[currentTableRow];
-                        else if (!column.unique) {
-                            row[column.name] = foreignKeys[currentTableRow % foreignKeys.length];
-                        } else {
-                            if (column.nullable === false) {
-                                console.warn(`Not enough FK for column: ${table.name}.${column.name}`);
-                                break BATCH_LOOP;
-                            }
-                        }
-                        continue;
+                    try {
+                        row[column.name] = generators[c].generate(currentTableRow, row);
+                    } catch (ex) {
+                        console.error(ex);
+                        break BATCH_LOOP;
                     }
-                    row[column.name] = generators[c].generate(currentTableRow, row);
+
                     if (column.nullable && this.random.realZeroToOneExclusive() <= 0.1) row[column.name] = null;
                 }
                 rows.push(row);

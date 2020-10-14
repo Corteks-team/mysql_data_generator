@@ -22,8 +22,6 @@ describe('Generator', () => {
             ])
             .build();
 
-
-
         const filler = new Filler(
             testConnector,
             customizedSchema,

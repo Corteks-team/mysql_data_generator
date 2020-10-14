@@ -15,6 +15,6 @@ export class TestConnector implements DatabaseConnector {
     getColumnsInformation = jest.fn(async (table: Table): Promise<MySQLColumn[]> => []);
     getForeignKeys = jest.fn(async () => []);
     getTablesInformation = jest.fn();
-    getValuesForForeignKeys = jest.fn();
+    getValuesForForeignKeys = jest.fn(async () => []);
     insert = jest.fn(async (tableName: string, rows: any[]) => rows.length);
 }

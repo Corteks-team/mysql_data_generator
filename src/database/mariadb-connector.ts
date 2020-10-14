@@ -234,6 +234,7 @@ export class MariaDBConnector implements DatabaseConnector {
             const column = table.columns[c];
             const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
             if (match) {
+                column.generator = Generators.foreignKey;
                 column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
                 column.unique = column.unique || match.uniqueIndex || false;
                 table.referencedTables.push(column.foreignKey.table);
@@ -359,7 +360,6 @@ export class MariaDBConnector implements DatabaseConnector {
         let values = [];
         const query = this.dbConnection(foreignTable)
             .distinct(`${foreignTable}.${foreignColumn}`)
-            .orderByRaw('RAND()')
             .limit(limit);
         if (condition) {
             query.andWhere(this.dbConnection.raw(condition));

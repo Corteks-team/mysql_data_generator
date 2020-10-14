@@ -11,6 +11,7 @@ export enum Generators {
     time = 'time',
     string = 'string',
     values = 'values',
+    foreignKey = 'foreignKey',
 }
 
 export abstract class AbstractGenerator<T>{
@@ -20,7 +21,7 @@ export abstract class AbstractGenerator<T>{
         protected column: CustomizedColumn,
     ) { }
 
-    public init(): void { }
+    public async init(): Promise<void> { }
 
     public abstract generate(rowIndex: number, row: { [key: string]: any; }): T;
 }

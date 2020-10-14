@@ -4,7 +4,7 @@ import { Monotonic } from '../../schema/schema.class';
 export class DateGenerator extends AbstractGenerator<Date> {
     protected values: Date[] = [];
 
-    init() {
+    async init() {
         if (this.column.monotonic !== undefined && this.column.monotonic !== Monotonic.NONE) {
             this.monotonic(this.column.monotonic);
         }

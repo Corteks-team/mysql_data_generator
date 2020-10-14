@@ -6,3 +6,4 @@ export { RealGenerator } from './real.generator';
 export { StringGenerator } from './string.generator';
 export { TimeGenerator } from './time.generator';
 export { ValuesGenerator } from './values.generator';
+export { ForeignKeyGenerator } from './foreignkey.generator';
