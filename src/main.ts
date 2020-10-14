@@ -15,7 +15,7 @@ logger.level = "debug";
 
 @CliMain
 class Main extends CliMainClass {
-    @CliParameter({ alias: 'uri', demandOption: true, description: 'Database URI. Eg: mysql://user:password@127.0.0.1:3306/database' })
+    @CliParameter({ alias: 'db', demandOption: true, description: 'Database URI. Eg: mysql://user:password@127.0.0.1:3306/database' })
     private uri: string | undefined = undefined;
 
     @CliParameter()
