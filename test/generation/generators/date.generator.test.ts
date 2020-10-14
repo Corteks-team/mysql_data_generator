@@ -1,8 +1,9 @@
 import { MersenneTwister19937, Random } from "random-js";
 import { DateGenerator } from "../../../src/generation/generators";
 import { Generators } from "../../../src/generation/generators/generators";
-import { CustomizedTable } from "../../../src/schema/customized-schema.class";
 import { Column, Monotonic } from "../../../src/schema/schema.class";
+import { CustomizedTable } from '../../../src/schema/customized-schema.class';
+import { Builder } from '../../../src/builder';
 
 let random = new Random(MersenneTwister19937.seed(42));
 describe('DateGenerator', () => {
@@ -10,61 +11,34 @@ describe('DateGenerator', () => {
 
     });
     it('should generate date', () => {
-        const table: CustomizedTable = {
-            addLines: 10,
-            after: [],
-            before: [],
-            columns: [],
-            disableTriggers: false,
-            maxLines: 100,
-            name: 'test_table',
-            referencedTables: []
-        };
+        const column: Column = new Builder(Column)
+            .set('generator', Generators.date)
+            .set('minDate', '01-01-1970 00:00:00Z')
+            .set('maxDate', '01-01-2020 00:00:00Z')
+            .build();
 
-        const column: Column = {
-            autoIncrement: false,
-            generator: Generators.date,
-            max: 0,
-            min: 0,
-            name: 'test_date',
-            nullable: false,
-            unique: false,
-            unsigned: false,
-            minDate: '1970-01-01',
-            maxDate: '2020-01-01'
-        };
+        const table: CustomizedTable = new Builder(CustomizedTable)
+            .set('columns', [column])
+            .build();
 
         const row = {};
 
         const dateGenerator = new DateGenerator(random, table, column);
         expect(dateGenerator.generate(0, row)).toStrictEqual(new Date('2018-12-17T15:50:11.304Z'));
     });
-    it.only('should generate monotonic date', () => {
+    it('should generate monotonic date', () => {
         const maxLines = 10;
-        const table: CustomizedTable = {
-            addLines: maxLines,
-            after: [],
-            before: [],
-            columns: [],
-            disableTriggers: false,
-            maxLines: maxLines,
-            name: 'test_table',
-            referencedTables: []
-        };
 
-        const column: Column = {
-            autoIncrement: false,
-            generator: Generators.date,
-            max: 0,
-            min: 0,
-            name: 'test_date',
-            nullable: false,
-            unique: false,
-            unsigned: false,
-            minDate: '1970-01-01',
-            maxDate: '2020-01-01',
-            monotonic: Monotonic.ASC
-        };
+        const column: Column = new Builder(Column)
+            .set('generator', Generators.date)
+            .set('monotonic', Monotonic.ASC)
+            .build();
+
+        const table: CustomizedTable = new Builder(CustomizedTable)
+            .set('maxLines', maxLines)
+            .set('columns', [column])
+            .set('deltaRows', maxLines)
+            .build();
 
         const row = {};
 

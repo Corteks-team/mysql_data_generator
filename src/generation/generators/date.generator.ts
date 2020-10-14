@@ -32,6 +32,6 @@ export class DateGenerator extends AbstractGenerator<Date> {
         let result: Date;
         if (this.values[rowIndex]) result = this.values[rowIndex];
         else result = this.generateRandomDate();
-        return result
+        return result;
     }
 }
