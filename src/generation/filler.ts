@@ -4,7 +4,7 @@ import { CustomizedSchema, CustomizedTable } from '../schema/customized-schema.c
 import { Table } from '../schema/schema.class';
 import { DatabaseConnector } from '../database/database-connector-builder';
 import { AbstractGenerator, Generators } from "./generators/generators";
-import { BitGenerator, BooleanGenerator, DateGenerator, IntegerGenerator, RealGenerator, StringGenerator, TimeGenerator } from './generators';
+import { BitGenerator, BooleanGenerator, DateGenerator, IntegerGenerator, RealGenerator, StringGenerator, TimeGenerator, ValuesGenerator } from './generators';
 
 export class Filler {
     private random: Random;
@@ -144,6 +144,9 @@ export class Filler {
                 case Generators.string:
                     generators.push(new StringGenerator(this.random, table, column));
                     break;
+                case Generators.values:
+                    generators.push(new ValuesGenerator(this.random, table, column));
+                    break;
                 default:
                 case Generators.none:
                     throw new Error(`No generator defined for column: ${table.name}.${column.name}`);
@@ -162,24 +165,7 @@ export class Filler {
                 for (var c = 0; c < table.columns.length; c++) {
                     const column = table.columns[c];
                     if (column.autoIncrement) continue;
-                    if (column.values) {
-                        let parsedValues: ParsedValues = [];
-                        let values: Values = column.values;
-                        if (typeof values === 'string') {
-                            values = this.schema.settings.values[values] as ParsedValues | ValuesWithRatio;
-                        }
-                        if (!(values instanceof Array)) {
-                            Object.keys(values).forEach((key: string) => {
-                                let arr = new Array(Math.round((values as ValuesWithRatio)[key] * 100));
-                                arr = arr.fill(key);
-                                parsedValues = parsedValues.concat(arr);
-                            });
-                        } else {
-                            parsedValues = values;
-                        }
-                        row[column.name] = this.random.pick(parsedValues);
-                        continue;
-                    }
+
                     if (column.foreignKey) {
                         const foreignKeys = tableForeignKeyValues[`${column.name}_${column.foreignKey.table}_${column.foreignKey.column}`];
                         if (currentTableRow < foreignKeys.length) row[column.name] = foreignKeys[currentTableRow];

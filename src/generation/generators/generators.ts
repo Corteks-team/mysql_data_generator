@@ -10,6 +10,7 @@ export enum Generators {
     date = 'date',
     time = 'time',
     string = 'string',
+    values = 'values',
 }
 
 export abstract class AbstractGenerator<T>{
