@@ -1,8 +1,8 @@
-import { CustomSchema } from '../src/schema/custom-schema.class';
-import { Schema, Table, Column } from '../src/schema/schema.class';
-import { CustomizedSchema } from '../src/schema/customized-schema.class';
-import { Generators } from '../src/generation/generators/generators';
-import { Builder } from '../src/builder';
+import { CustomSchema } from '../../../src/schema/custom-schema.class';
+import { Schema, Table, Column } from '../../../src/schema/schema.class';
+import { CustomizedSchema } from '../../../src/schema/customized-schema.class';
+import { Generators } from '../../../src/generation/generators/generators';
+import { Builder } from '../../../src/builder';
 
 describe('CustomizedSchema', () => {
     it('handle missing custom table', async () => {
