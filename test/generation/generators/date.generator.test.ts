@@ -1,8 +1,8 @@
 import { MersenneTwister19937, Random } from "random-js";
 import { DateGenerator } from "../../../src/generation/generators";
 import { Generators } from "../../../src/generation/generators/generators";
-import { Column, Monotonic } from "../../../src/schema/schema.class";
-import { CustomizedTable } from '../../../src/schema/customized-schema.class';
+import { Monotonic } from "../../../src/schema/schema.class";
+import { CustomizedTable, CustomizedColumn } from '../../../src/schema/customized-schema.class';
 import { Builder } from '../../../src/builder';
 
 let random = new Random(MersenneTwister19937.seed(42));
@@ -11,7 +11,7 @@ describe('DateGenerator', () => {
 
     });
     it('should generate date', () => {
-        const column: Column = new Builder(Column)
+        const column: CustomizedColumn = new Builder(CustomizedColumn)
             .set('generator', Generators.date)
             .set('minDate', '01-01-1970 00:00:00Z')
             .set('maxDate', '01-01-2020 00:00:00Z')
@@ -29,7 +29,7 @@ describe('DateGenerator', () => {
     it('should generate monotonic date', () => {
         const maxLines = 10;
 
-        const column: Column = new Builder(Column)
+        const column: CustomizedColumn = new Builder(CustomizedColumn)
             .set('generator', Generators.date)
             .set('monotonic', Monotonic.ASC)
             .build();
