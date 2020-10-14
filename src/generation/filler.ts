@@ -147,7 +147,7 @@ export class Filler {
                         break BATCH_LOOP;
                     }
 
-                    if (column.nullable && this.random.realZeroToOneExclusive() <= 0.1) row[column.name] = null;
+                    if (column.nullable > 0 && this.random.real(0, 1) < column.nullable) row[column.name] = null;
                 }
                 rows.push(row);
                 currentTableRow++;

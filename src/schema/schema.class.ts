@@ -52,8 +52,8 @@ export class Column {
     name: string = '';
     @IsString()
     generator: Generators = Generators.none;
-    @IsBoolean()
-    nullable: boolean = true;
+    @IsNumber()
+    nullable: number = 0;
     @IsBoolean()
     unique: boolean = false;
     @IsBoolean()

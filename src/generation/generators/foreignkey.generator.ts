@@ -30,7 +30,7 @@ export class ForeignKeyGenerator extends AbstractGenerator<string | number | und
         else if (!this.column.unique) {
             return foreignKeys[rowIndex % foreignKeys.length];
         } else {
-            if (this.column.nullable === false) {
+            if (this.column.nullable <= 0) {
                 throw new Error(`Not enough FK for column: ${this.table.name}.${this.column.name}`);
             }
         }
