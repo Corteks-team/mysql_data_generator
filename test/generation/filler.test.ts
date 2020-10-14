@@ -36,11 +36,63 @@ describe('Generator', () => {
         expect(testConnector.emptyTable).toHaveBeenCalled();
 
     });
+    it('launch beforeAll script', async () => {
+        const globalSettings = new Builder(CustomSettings)
+            .set('beforeAll', ['query beforeAll'])
+            .build();
+
+        const customizedTable = new Builder(CustomizedTable)
+            .set('name', 'test')
+            .set('addLines', 10)
+            .build();
+
+        const customizedSchema = new Builder(CustomizedSchema)
+            .set('settings', globalSettings)
+            .set('tables', [
+                customizedTable
+            ])
+            .build();
+
+        const generator = new Filler(
+            testConnector,
+            customizedSchema,
+            logger
+        );
+        await generator.fillTables(true);
+
+        expect(testConnector.executeRawQuery).toHaveBeenCalledWith('query beforeAll');
+    });
+    it('launch afterAll script', async () => {
+        const globalSettings = new Builder(CustomSettings)
+            .set('afterAll', ['query afterAll'])
+            .build();
+
+        const customizedTable = new Builder(CustomizedTable)
+            .set('name', 'test')
+            .set('addLines', 10)
+            .build();
+
+        const customizedSchema = new Builder(CustomizedSchema)
+            .set('settings', globalSettings)
+            .set('tables', [
+                customizedTable
+            ])
+            .build();
+
+        const generator = new Filler(
+            testConnector,
+            customizedSchema,
+            logger
+        );
+        await generator.fillTables(true);
+
+        expect(testConnector.executeRawQuery).toHaveBeenCalledWith('query afterAll');
+    });
     it('launch before script', async () => {
         const customizedTable = new Builder(CustomizedTable)
             .set('name', 'test')
             .set('addLines', 10)
-            .set('before', ['query'])
+            .set('before', ['query before'])
             .build();
 
         const customizedSchema = new Builder(CustomizedSchema)
@@ -56,13 +108,13 @@ describe('Generator', () => {
         );
         await generator.fillTables(true);
 
-        expect(testConnector.executeRawQuery).toHaveBeenCalledWith('query');
+        expect(testConnector.executeRawQuery).toHaveBeenCalledWith('query before');
     });
     it('launch after script', async () => {
         const customizedTable = new Builder(CustomizedTable)
             .set('name', 'test')
             .set('maxLines', 100)
-            .set('after', ['query'])
+            .set('after', ['query after'])
             .build();
 
         const customizedSchema = new Builder(CustomizedSchema)
@@ -80,7 +132,7 @@ describe('Generator', () => {
         );
         await generator.fillTables(true);
 
-        expect(testConnector.executeRawQuery).toHaveBeenCalledWith('query');
+        expect(testConnector.executeRawQuery).toHaveBeenCalledWith('query after');
     });
     it('should generate always same data with seed', async () => {
         const column = new Builder(CustomizedColumn)
