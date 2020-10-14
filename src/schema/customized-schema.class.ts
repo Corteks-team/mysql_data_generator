@@ -1,5 +1,6 @@
 import { Column, ForeignKey, Schema, Table } from './schema.class';
 import { CustomSchema } from './custom-schema.class';
+import { Builder } from '../builder';
 
 export class CustomizedSchema extends CustomSchema {
     public tables: CustomizedTable[] = [];
@@ -26,6 +27,24 @@ export class CustomizedSchema extends CustomSchema {
         return customizedSchema;
     }
 
+    private static parseValues(columnValues: Values, globalValues: { [key: string]: ParsedValues | ValuesWithRatio; }) {
+        let parsedValues: ParsedValues = [];
+        let values: Values = columnValues;
+        if (typeof values === 'string') {
+            values = globalValues[values] as ParsedValues | ValuesWithRatio;
+        }
+        if (!(values instanceof Array)) {
+            Object.keys(values).forEach((key: string) => {
+                let arr = new Array(Math.round((values as ValuesWithRatio)[key] * 100));
+                arr = arr.fill(key);
+                parsedValues = parsedValues.concat(arr);
+            });
+        } else {
+            parsedValues = values;
+        }
+        return parsedValues;
+    }
+
     private static customizeTable(table: Table, customSchema: CustomSchema): CustomizedTable {
         let customizedTable: CustomizedTable = new CustomizedTable();
         customizedTable.name = table.name;
@@ -38,16 +57,29 @@ export class CustomizedSchema extends CustomSchema {
             customizedTable.before = customTable.before || [];
             customizedTable.after = customTable.after || [];
         }
-        table.columns.forEach((column) => {
-            const customColumn = customTable?.columns?.find(c => c.name.toLowerCase() === column.name.toLowerCase());
-            if (customColumn?.foreignKey) {
-                column.foreignKey = customColumn.foreignKey;
-                customizedTable.referencedTables.push(column.foreignKey.table);
-            }
-            if (customColumn?.values) column.values = customColumn.values;
+        customizedTable.columns = table.columns.map((column): CustomizedColumn => {
             const globalSetting = customSchema.settings.options.find(o => o.generators.includes(column.generator));
-            column = Object.assign({}, column, globalSetting?.options, customColumn);
-            customizedTable.columns.push(column);
+            let customColumn = customTable?.columns?.find(c => c.name.toLowerCase() === column.name.toLowerCase());
+            customColumn = Object.assign({}, column, globalSetting?.options, customColumn);
+
+            let customizedColumnBuilder = new Builder(CustomizedColumn);
+            if (customColumn.autoIncrement !== undefined) customizedColumnBuilder.set('autoIncrement', customColumn.autoIncrement);
+            if (customColumn.generator !== undefined) customizedColumnBuilder.set('generator', customColumn.generator);
+            if (customColumn.max !== undefined) customizedColumnBuilder.set('max', customColumn.max);
+            if (customColumn.min !== undefined) customizedColumnBuilder.set('min', customColumn.min);
+            if (customColumn.maxDate !== undefined) customizedColumnBuilder.set('maxDate', customColumn.maxDate);
+            if (customColumn.minDate !== undefined) customizedColumnBuilder.set('minDate', customColumn.minDate);
+            if (customColumn.monotonic !== undefined) customizedColumnBuilder.set('monotonic', customColumn.monotonic);
+            if (customColumn.name !== undefined) customizedColumnBuilder.set('name', customColumn.name);
+            if (customColumn.nullable !== undefined) customizedColumnBuilder.set('nullable', customColumn.nullable);
+            if (customColumn.unique !== undefined) customizedColumnBuilder.set('unique', customColumn.unique);
+            if (customColumn.unsigned !== undefined) customizedColumnBuilder.set('unsigned', customColumn.unsigned);
+            if (customColumn?.foreignKey) {
+                customizedColumnBuilder.set('foreignKey', customColumn.foreignKey);
+                customizedTable.referencedTables.push(customColumn.foreignKey.table);
+            }
+            if (customColumn?.values) customizedColumnBuilder.set('values', CustomizedSchema.parseValues(customColumn.values, customSchema.settings.values));
+            return customizedColumnBuilder.build();
         });
         return customizedTable;
     }
@@ -92,7 +124,7 @@ export class CustomizedTable {
     columns: CustomizedColumn[] = [];
     referencedTables: string[] = [];
     before: string[] = [];
-    after: string[] = [];    
+    after: string[] = [];
     maxLines: number = 1000;
     addLines: number = Infinity;
     deltaRows: number = 0;
@@ -101,6 +133,7 @@ export class CustomizedTable {
 
 export class CustomizedColumn extends Column {
     foreignKey?: CustomizedForeignKey;
+    values?: ParsedValues;
 }
 
 export class CustomizedForeignKey extends ForeignKey {
