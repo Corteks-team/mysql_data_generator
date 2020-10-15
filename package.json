@@ -23,9 +23,14 @@
     "engines": {
         "node": ">= 12.16.2"
     },
+    "optionalDependencies": {
+        "@types/mysql": "^2.15.15",
+        "@types/pg": "^7.14.5",
+        "mysql": "^2.18.1",
+        "pg": "^8.4.1"
+    },
     "dependencies": {
         "@corteks/clify": "^0.2.1",
-        "@types/cli-progress": "^3.8.0",
         "class-transformer": "^0.3.1",
         "class-validator": "^0.12.2",
         "fs-extra": "^9.0.1",
@@ -33,8 +38,6 @@
         "knex": "^0.20.15",
         "log4js": "^6.3.0",
         "moment": "^2.29.0",
-        "mysql": "^2.18.1",
-        "pg": "^8.3.3",
         "random-js": "^2.1.0",
         "uri-js": "^4.4.0",
         "yargs": "^15.4.1"
@@ -42,7 +45,6 @@
     "devDependencies": {
         "@types/fs-extra": "^8.1.1",
         "@types/jest": "^25.2.3",
-        "@types/mysql": "^2.15.15",
         "@types/node": "^13.13.21",
         "@types/yargs": "^15.0.7",
         "jest": "^26.4.2",

@@ -58,7 +58,7 @@ interface PGColumn {
     table_name: string,
     column_name: string,
     ordinal_position: number,
-    column_default: null,
+    column_default: string,
     is_nullable: 'YES' | 'NO',
     data_type: string,
     character_maximum_length: number,

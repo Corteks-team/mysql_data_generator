@@ -48,10 +48,11 @@ export class DatabaseConnectorBuilder {
                 connector = new MariaDBConnector(this.uri);
                 await connector.init();
                 break;
-            case 'postgres':
+            case DatabaseEngines.POSTGRES:
                 connector = new PGConnector(
                     this.uri,
                 );
+                break;
             default:
                 throw new Error('Unsupported engine.');
         }

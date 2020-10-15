@@ -2,8 +2,9 @@ import Knex from 'knex';
 import { getLogger } from 'log4js';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { Table, Column, Schema } from '../schema.class';
+import { Table, Column, Schema } from '../schema/schema.class';
 import { DatabaseConnector } from './database-connector-builder';
+import { Generators } from '../generation/generators/generators';
 
 export class PGConnector implements DatabaseConnector {
     private dbConnection: Knex;
@@ -48,7 +49,7 @@ export class PGConnector implements DatabaseConnector {
 
     async countLines(table: Table) {
         const query = this.dbConnection(table.name).withSchema(this.database).count();
-        return (await query)[0]['count'] as number;
+        return parseInt((await query)[0]['count'] as string, 10);
     }
 
     async emptyTable(table: Table) {
@@ -62,14 +63,13 @@ export class PGConnector implements DatabaseConnector {
 
     async insert(table: string, rows: any[]): Promise<number> {
         if (rows.length === 0) return 0;
-        const query = await this.dbConnection(table)
+        let query = await this.dbConnection(table)
             .withSchema(this.database)
             .insert(rows)
-            .toQuery()
-            .concat(' ON CONFLICT DO NOTHING');
+            .toQuery();
         const insertResult = await this.dbConnection.raw(query);
-        console.log(insertResult);
-        return insertResult.rowCount;
+
+        return parseInt(insertResult.rowCount, 10);
     }
 
     async destroy() {
@@ -79,11 +79,11 @@ export class PGConnector implements DatabaseConnector {
     async getSchema(): Promise<Schema> {
         let tables = await this.getTablesInformation();
         tables = await Promise.all(tables.map(async (table) => {
-            console.log(table);
+
             await this.extractColumns(table);
-            console.log(table);
+
             await this.extractForeignKeys(table);
-            console.log(table);
+
             return table;
         }));
         return Schema.fromJSON({ tables: tables });
@@ -99,24 +99,24 @@ export class PGConnector implements DatabaseConnector {
                 column.numeric_precision = column.column_type.match(/[enum,set]\((.*)\)$/)![1].split('\',\'').length;
             });*/
 
-        table.columns = columns.map((pgColumn: PGColumn) => {
-            console.log(pgColumn);
+        table.columns = await Promise.all(columns.map(async (pgColumn: PGColumn) => {
             const column = new Column();
             column.name = pgColumn.column_name;
-            column.generator = pgColumn.data_type.replace(/"/g, '');
             // if (pgColumn.column_key && pgColumn.column_key.match(/PRI|UNI/ig)) column.unique = true;
-            if (pgColumn.is_nullable === 'YES') column.nullable = true;
+            column.nullable = pgColumn.is_nullable === 'YES' ? 0.1 : 0;
             column.max = pgColumn.character_maximum_length || pgColumn.numeric_precision || 255;
             // if (pgColumn.column_type && pgColumn.column_type.includes('unsigned')) column.unsigned = true;
-            if (pgColumn.is_identity || pgColumn.is_generated !== 'NEVER') column.autoIncrement = true;
+            if (pgColumn.is_identity === 'YES'
+                || pgColumn.is_generated !== 'NEVER'
+                || /nextval.*/.test(pgColumn.column_default)
+            ) column.autoIncrement = true;
             switch (pgColumn.data_type) {
-                case 'bit':
-                case 'bit varying':
-                    break;
                 case 'bool':
                 case 'boolean':
+                    column.generator = Generators.boolean;
                     break;
                 case 'smallint':
+                    column.generator = Generators.integer;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 65535;
@@ -129,6 +129,7 @@ export class PGConnector implements DatabaseConnector {
                 case 'bigint':
                 case 'money':
                 case 'interval':
+                    column.generator = Generators.integer;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 2147483647;
@@ -141,6 +142,7 @@ export class PGConnector implements DatabaseConnector {
                 case 'numeric':
                 case 'real':
                 case 'double precision':
+                    column.generator = Generators.real;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 2147483647;
@@ -151,15 +153,18 @@ export class PGConnector implements DatabaseConnector {
                     break;
                 case 'smallserial':
                 case 'bigserial':
+                    column.generator = Generators.integer;
                     column.min = 1;
                     column.max = 2147483647;
                     break;
                 case 'serial':
+                    column.generator = Generators.integer;
                     column.min = 1;
                     column.max = 32767;
                 case 'timestamp with time zone':
                 case 'timestamp without time zone':
                 case 'date':
+                    column.generator = Generators.date;
                     column.minDate = '01-01-1970';
                     column.maxDate = undefined;
                     break;
@@ -167,6 +172,7 @@ export class PGConnector implements DatabaseConnector {
                 case 'time without time zone':
                     break;
                 case 'year':
+                    column.generator = Generators.integer;
                     column.min = 1901;
                     column.max = 2155;
                     break;
@@ -176,14 +182,30 @@ export class PGConnector implements DatabaseConnector {
                 case 'char':
                 case 'text':
                 case 'bytea':
+                    column.generator = Generators.string;
                     break;
+                case 'bit':
                 case 'set':
-                case 'enum':
+                    column.generator = Generators.bit;
                     column.max = pgColumn.numeric_precision;
+                    break;
+                case 'USER-DEFINED':
+                    column.generator = Generators.values;
+                    const result = await this.dbConnection.select([
+                        'n.nspname as enum_schema',
+                        't.typname as enum_name',
+                        'e.enumlabel as enum_value'
+                    ])
+                        .from('pg_type as t')
+                        .join('pg_enum as e', 't.oid', 'e.enumtypid')
+                        .join('pg_catalog.pg_namespace as n', 'n.oid', 't.typnamespace')
+                        .where('n.nspname', 'postgres')
+                        .andWhere('t.typname', 'transferdirection');
+                    column.values = result.map((row) => row['enum_value']);
                     break;
             }
             return column;
-        });
+        }));
     }
 
     private extractForeignKeys = async (table: Table) => {
@@ -191,7 +213,6 @@ export class PGConnector implements DatabaseConnector {
         table.referencedTables = [];
         for (let c = 0; c < table.columns.length; c++) {
             const column = table.columns[c];
-            console.log(column);
             const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
             if (match) {
                 column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
@@ -284,9 +305,6 @@ export class PGConnector implements DatabaseConnector {
             })
             .where('tc.constraint_type', 'FOREIGN KEY')
             .andWhere('tc.table_name', table.name);
-
-        console.log(foreignKeys);
-
         return foreignKeys;
     }
 
@@ -313,7 +331,6 @@ export class PGConnector implements DatabaseConnector {
                 this.on(`${table}.${column}`, `${foreignTable}.${foreignColumn}`);
             }).whereNull(`${table}.${column}`);
         }
-        console.log(query.toString());
         values = (await query).map(result => result[foreignColumn]);
         return values;
     }
