@@ -2,7 +2,7 @@ import Knex from 'knex';
 import { getLogger } from 'log4js';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { Table, Column, Schema } from '../schema/schema.class';
+import { Table, Column, Schema } from '../schema.class';
 import { DatabaseConnector } from './database-connector-builder';
 
 export class PGConnector implements DatabaseConnector {
