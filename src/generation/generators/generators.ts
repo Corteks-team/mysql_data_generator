@@ -21,7 +21,7 @@ export abstract class AbstractGenerator<T>{
         protected column: CustomizedColumn,
     ) { }
 
-    public async init(): Promise<void> { return; }
+    public async init(): Promise<AbstractGenerator<T>> { return this; }
 
     public abstract generate(rowIndex: number, row: { [key: string]: any; }): T;
 }

@@ -8,6 +8,7 @@ export class DateGenerator extends AbstractGenerator<Date> {
         if (this.column.monotonic !== undefined && this.column.monotonic !== Monotonic.NONE) {
             this.monotonic(this.column.monotonic);
         }
+        return this;
     }
 
     monotonic(order: Monotonic) {

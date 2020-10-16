@@ -4,7 +4,7 @@ import { CustomizedSchema, CustomizedTable } from '../schema/customized-schema.c
 import { Table } from '../schema/schema.class';
 import { DatabaseConnector } from '../database/database-connector-builder';
 import { AbstractGenerator, Generators } from './generators/generators';
-import { BitGenerator, BooleanGenerator, DateGenerator, IntegerGenerator, RealGenerator, StringGenerator, TimeGenerator, ValuesGenerator } from './generators';
+import { GeneratorBuilder } from './generators';
 
 export class Filler {
     private random: Random;
@@ -92,40 +92,10 @@ export class Filler {
         let currentTableRow = 0;
         this.logger.info(currentNbRows + ' / ' + maxLines);
 
-        const generators: AbstractGenerator<any>[] = [];
-        for (const column of table.columns) {
-            switch (column.generator) {
-                case Generators.bit:
-                    generators.push(new BitGenerator(this.random, table, column));
-                    break;
-                case Generators.boolean:
-                    generators.push(new BooleanGenerator(this.random, table, column));
-                    break;
-                case Generators.integer:
-                    generators.push(new IntegerGenerator(this.random, table, column));
-                    break;
-                case Generators.real:
-                    generators.push(new RealGenerator(this.random, table, column));
-                    break;
-                case Generators.date:
-                    generators.push(new DateGenerator(this.random, table, column));
-                    break;
-                case Generators.time:
-                    generators.push(new TimeGenerator(this.random, table, column));
-                    break;
-                case Generators.string:
-                    generators.push(new StringGenerator(this.random, table, column));
-                    break;
-                case Generators.values:
-                    generators.push(new ValuesGenerator(this.random, table, column));
-                    break;
-                default:
-                case Generators.none:
-                    throw new Error(`No generator defined for column: ${table.name}.${column.name}`);
-            }
-        }
-
-        await Promise.all(generators.map((g) => g.init()));
+        const generatorBuilder = new GeneratorBuilder(this.random, this.dbConnector, table);
+        const generators: AbstractGenerator<any>[] = await Promise.all(table.columns
+            .map((column) => generatorBuilder.build(column))
+            .map((g) => g.init()));
 
         TABLE_LOOP: while (currentNbRows < maxLines) {
             previousRunRows = currentNbRows;

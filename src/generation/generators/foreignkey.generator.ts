@@ -11,7 +11,7 @@ export class ForeignKeyGenerator extends AbstractGenerator<string | number | und
 
     async init() {
         if (!this.dbConnector) throw new Error('Could not connect to database');
-        await this.dbConnector.getValuesForForeignKeys(
+        const values = await this.dbConnector.getValuesForForeignKeys(
             this.table.name,
             this.column.name,
             this.column.foreignKey!.table,
@@ -19,9 +19,9 @@ export class ForeignKeyGenerator extends AbstractGenerator<string | number | und
             this.table.deltaRows,
             this.column.unique,
             this.column.foreignKey!.where,
-        ).then((values) => {
-            this.values = this.random.shuffle(values);
-        });
+        );
+        this.values = this.random.shuffle(values);
+        return this;
     }
 
     generate(rowIndex: number, row: { [key: string]: any; }) {
