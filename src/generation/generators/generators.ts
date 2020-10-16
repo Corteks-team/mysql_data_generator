@@ -1,5 +1,5 @@
-import { Random } from "random-js";
-import { CustomizedColumn, CustomizedTable } from "../../schema/customized-schema.class";
+import { Random } from 'random-js';
+import { CustomizedColumn, CustomizedTable } from '../../schema/customized-schema.class';
 
 export enum Generators {
     none = 'none',
@@ -21,7 +21,7 @@ export abstract class AbstractGenerator<T>{
         protected column: CustomizedColumn,
     ) { }
 
-    public async init(): Promise<void> { }
+    public async init(): Promise<void> { return; }
 
     public abstract generate(rowIndex: number, row: { [key: string]: any; }): T;
 }

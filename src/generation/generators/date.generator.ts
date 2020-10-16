@@ -1,4 +1,4 @@
-import { AbstractGenerator } from "./generators";
+import { AbstractGenerator } from './generators';
 import { Monotonic } from '../../schema/schema.class';
 
 export class DateGenerator extends AbstractGenerator<Date> {

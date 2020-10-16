@@ -22,12 +22,10 @@ export class CustomSettings {
     @ValidateNested({ each: true })
     tablesToFill: string[] = [];
     values: { [key: string]: any[]; } = {};
-    options: Array<
-        {
-            generators: Generators[],
-            options: Partial<Column>;
-        }
-    > = [];
+    options: {
+        generators: Generators[],
+        options: Partial<Column>;
+    }[] = [];
     @IsNumber()
     @IsOptional()
     seed?: number;

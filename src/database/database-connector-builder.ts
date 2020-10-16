@@ -1,7 +1,7 @@
 import { MariaDBConnector } from './mariadb-connector';
 import { Table, Schema, ForeignKey } from '../schema/schema.class';
 import { DatabaseEngines } from './database-engines';
-import * as URI from "uri-js";
+import * as URI from 'uri-js';
 
 export interface DatabaseConnector {
     init(): Promise<void>;
@@ -15,7 +15,15 @@ export interface DatabaseConnector {
     getTablesInformation(): Promise<Table[]>;
     getColumnsInformation(table: Table): Promise<MySQLColumn[]>;
     getForeignKeys(table: Table): Promise<ForeignKey[]>;
-    getValuesForForeignKeys(table: string, column: string, foreignTable: string, foreignColumn: string, limit: number, unique: boolean, condition: string | undefined): Promise<any[]>;
+    getValuesForForeignKeys(
+        table: string,
+        column: string,
+        foreignTable: string,
+        foreignColumn: string,
+        limit: number,
+        unique: boolean,
+        condition: string | undefined,
+    ): Promise<any[]>;
     backupTriggers(tables: string[]): Promise<void>;
     cleanBackupTriggers(): void;
     disableTriggers(table: string): Promise<void>;

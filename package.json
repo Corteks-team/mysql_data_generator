@@ -55,8 +55,9 @@
     "scripts": {
         "dev": "nodemon --no-stdin",
         "build": "tsc",
-        "prepublishOnly": "tsc",
-        "test": "jest"
+        "prepublishOnly": "npm build && npm test",
+        "test": "jest",
+        "lint": "tslint -p tsconfig.json -c tslint.json"
     },
     "description": "This is a tool to easily fill a SQL database.  \r It is able to analyse a schema and generate a `schema.json` which will be used to generate accurate data. It does its best to handle foreign keys.  \r You can provide a `custom_schema.json` to customize `schema.json` during the analyse phase. This will allow you to override datatype for a column, force the use of a foreign key\r or specify a list of values.",
     "bugs": {

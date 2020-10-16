@@ -42,9 +42,9 @@ export class ForeignKey {
 }
 
 export enum Monotonic {
-    ASC = "ASC",
-    DESC = "DESC",
-    NONE = "NONE"
+    ASC = 'ASC',
+    DESC = 'DESC',
+    NONE = 'NONE',
 }
 
 export class Column {

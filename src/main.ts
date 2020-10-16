@@ -11,7 +11,7 @@ import { CustomSchema } from './schema/custom-schema.class';
 import { CustomizedSchema } from './schema/customized-schema.class';
 
 const logger = getLogger();
-logger.level = "debug";
+logger.level = 'debug';
 
 @CliMain
 class Main extends CliMainClass {
@@ -47,7 +47,7 @@ class Main extends CliMainClass {
 
             await this.generateData();
         } catch (ex) {
-            if (ex.code == 'ENOENT') {
+            if (ex.code === 'ENOENT') {
                 logger.error('Unable to read from ./settings/schema.json. Please run with --analyse first.');
             } else {
                 logger.error(ex);
@@ -64,7 +64,7 @@ class Main extends CliMainClass {
         const schema = await this.dbConnector.getSchema();
         fs.writeJSONSync(path.join('settings', 'schema.json'), schema.toJSON(), { spaces: 4 });
         if (!fs.existsSync(path.join('settings', 'custom_schema.jsonc'))) {
-            let customSchema = new CustomSchema();
+            const customSchema = new CustomSchema();
             fs.writeJSONSync(path.join('settings', 'custom_schema.jsonc'), customSchema, { spaces: 4 });
         }
         return 0;
@@ -72,7 +72,7 @@ class Main extends CliMainClass {
 
     async generateData() {
         if (!this.dbConnector) throw new Error('DB connection not ready');
-        let schema: Schema = await Schema.fromJSON(fs.readJSONSync(path.join('settings', 'schema.json')));
+        const schema: Schema = await Schema.fromJSON(fs.readJSONSync(path.join('settings', 'schema.json')));
         let customSchema: CustomSchema = new CustomSchema();
         try {
             customSchema = JSONC.parse(fs.readFileSync(path.join('settings', 'custom_schema.jsonc')).toString());

@@ -1,9 +1,9 @@
-import { AbstractGenerator } from "./generators";
+import { AbstractGenerator } from './generators';
 import { DatabaseConnector } from '../../database/database-connector-builder';
 
 export class ForeignKeyGenerator extends AbstractGenerator<string | number | undefined> {
     private dbConnector: DatabaseConnector | undefined;
-    private values: Array<string | number> = [];
+    private values: (string | number)[] = [];
 
     setDbConnector(dbConnector: DatabaseConnector) {
         this.dbConnector = dbConnector;

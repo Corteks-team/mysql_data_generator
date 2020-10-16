@@ -1,9 +1,9 @@
-import { Random, MersenneTwister19937 } from "random-js";
+import { Random, MersenneTwister19937 } from 'random-js';
 import { Logger } from 'log4js';
 import { CustomizedSchema, CustomizedTable } from '../schema/customized-schema.class';
 import { Table } from '../schema/schema.class';
 import { DatabaseConnector } from '../database/database-connector-builder';
-import { AbstractGenerator, Generators } from "./generators/generators";
+import { AbstractGenerator, Generators } from './generators/generators';
 import { BitGenerator, BooleanGenerator, DateGenerator, IntegerGenerator, RealGenerator, StringGenerator, TimeGenerator, ValuesGenerator } from './generators';
 
 export class Filler {
@@ -13,7 +13,7 @@ export class Filler {
     constructor(
         private dbConnector: DatabaseConnector,
         private schema: CustomizedSchema,
-        private logger: Logger
+        private logger: Logger,
     ) {
         if (schema.settings.seed) {
             this.random = new Random(MersenneTwister19937.seed(schema.settings.seed));
@@ -32,17 +32,17 @@ export class Filler {
     }
 
     public async fillTables(reset: boolean = false) {
-        this.beforeAll();
+        await this.beforeAll();
         for (const table of this.schema.tables) {
             await this.fill(table, reset);
         }
-        this.afterAll();
+        await this.afterAll();
     }
 
     private async fill(table: CustomizedTable, reset: boolean = false) {
         if (reset) await this.empty(table);
         this.logger.info('fill: ', table.name);
-        let handleTriggers = table.disableTriggers || (table.disableTriggers === undefined && this.schema.settings.disableTriggers);
+        const handleTriggers = table.disableTriggers || (table.disableTriggers === undefined && this.schema.settings.disableTriggers);
         if (handleTriggers) await this.dbConnector.disableTriggers(table.name);
         await this.before(table);
         const insertedRows = await this.generateData(table);
@@ -93,8 +93,7 @@ export class Filler {
         this.logger.info(currentNbRows + ' / ' + maxLines);
 
         const generators: AbstractGenerator<any>[] = [];
-        for (var c = 0; c < table.columns.length; c++) {
-            const column = table.columns[c];
+        for (const column of table.columns) {
             switch (column.generator) {
                 case Generators.bit:
                     generators.push(new BitGenerator(this.random, table, column));
@@ -136,14 +135,14 @@ export class Filler {
 
             BATCH_LOOP: for (let currentBatchRow = 0; currentBatchRow < runRows; currentBatchRow++) {
                 const row: { [key: string]: any; } = {};
-                for (var c = 0; c < table.columns.length; c++) {
+                for (let c = 0; c < table.columns.length; c++) {
                     const column = table.columns[c];
                     if (column.autoIncrement) continue;
 
                     try {
                         row[column.name] = generators[c].generate(currentTableRow, row);
                     } catch (ex) {
-                        console.error(ex);
+                        this.logger.error(ex);
                         break BATCH_LOOP;
                     }
 

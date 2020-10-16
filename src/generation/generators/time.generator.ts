@@ -1,4 +1,4 @@
-import { AbstractGenerator } from "./generators";
+import { AbstractGenerator } from './generators';
 
 export class TimeGenerator extends AbstractGenerator<string> {
     generate(rowIndex: number, row: { [key: string]: any; }) {

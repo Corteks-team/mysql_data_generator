@@ -1,4 +1,4 @@
-import { AbstractGenerator } from "./generators";
+import { AbstractGenerator } from './generators';
 
 export class ValuesGenerator extends AbstractGenerator<string | number | null> {
     generate(rowIndex: number, row: { [key: string]: any; }) {

@@ -5,11 +5,11 @@ import { Builder } from '../builder';
 export class CustomizedSchema extends CustomSchema {
     public tables: CustomizedTable[] = [];
 
-    public static create(schema: Schema, customSchema: CustomSchema = new CustomSchema): CustomizedSchema {
+    public static create(schema: Schema, customSchema: CustomSchema = new CustomSchema()): CustomizedSchema {
         const customizedSchema = new CustomizedSchema();
 
         customizedSchema.settings = Object.assign({}, customizedSchema.settings, customSchema.settings);
-        let tables = schema.tables
+        const tables = schema.tables
             .filter((table) => {
                 return !customSchema.settings.ignoredTables.includes(table.name)
                     && (
@@ -46,7 +46,7 @@ export class CustomizedSchema extends CustomSchema {
     }
 
     private static customizeTable(table: Table, customSchema: CustomSchema): CustomizedTable {
-        let customizedTable: CustomizedTable = new CustomizedTable();
+        const customizedTable: CustomizedTable = new CustomizedTable();
         customizedTable.name = table.name;
         customizedTable.referencedTables = table.referencedTables;
         const customTable = customSchema.tables.find(t => t.name && t.name.toLowerCase() === table.name.toLowerCase());
@@ -62,7 +62,7 @@ export class CustomizedSchema extends CustomSchema {
             let customColumn = customTable?.columns?.find(c => c.name.toLowerCase() === column.name.toLowerCase());
             customColumn = Object.assign({}, column, globalSetting?.options, customColumn);
 
-            let customizedColumnBuilder = new Builder(CustomizedColumn);
+            const customizedColumnBuilder = new Builder(CustomizedColumn);
             if (customColumn.autoIncrement !== undefined) customizedColumnBuilder.set('autoIncrement', customColumn.autoIncrement);
             if (customColumn.generator !== undefined) customizedColumnBuilder.set('generator', customColumn.generator);
             if (customColumn.max !== undefined) customizedColumnBuilder.set('max', customColumn.max);
@@ -78,14 +78,15 @@ export class CustomizedSchema extends CustomSchema {
                 customizedColumnBuilder.set('foreignKey', customColumn.foreignKey);
                 customizedTable.referencedTables.push(customColumn.foreignKey.table);
             }
-            if (customColumn?.values) customizedColumnBuilder.set('values', CustomizedSchema.parseValues(customColumn.values, customSchema.settings.values));
+            if (customColumn?.values)
+                customizedColumnBuilder.set('values', CustomizedSchema.parseValues(customColumn.values, customSchema.settings.values));
             return customizedColumnBuilder.build();
         });
         return customizedTable;
     }
 
     private static orderTablesByForeignKeys(tables: CustomizedTable[]) {
-        let sortedTables: CustomizedTable[] = [];
+        const sortedTables: CustomizedTable[] = [];
         const recursive = (branch: CustomizedTable[]) => {
             const table = branch[branch.length - 1];
             while (table.referencedTables.length > 0) {
@@ -106,7 +107,7 @@ export class CustomizedSchema extends CustomSchema {
                 columns: table.columns,
                 before: table.before,
                 after: table.after,
-                referencedTables: []
+                referencedTables: [],
             });
             branch.pop();
             return;

@@ -5,7 +5,7 @@ import * as path from 'path';
 import { Table, Column, Schema } from '../schema/schema.class';
 import { DatabaseConnector } from './database-connector-builder';
 import { Generators } from '../generation/generators/generators';
-import * as URI from "uri-js";
+import * as URI from 'uri-js';
 import { Connection, MysqlError } from 'mysql';
 
 export class MariaDBConnector implements DatabaseConnector {
@@ -17,7 +17,7 @@ export class MariaDBConnector implements DatabaseConnector {
     private database: string;
 
     constructor(
-        private uri: string
+        private uri: string,
     ) {
         this.uriComponents = URI.parse(this.uri);
         if (!this.uriComponents.path) throw new Error('Please sepcify database name');
@@ -37,23 +37,23 @@ export class MariaDBConnector implements DatabaseConnector {
                 },
                 debug: (message) => {
                     this.logger.debug(message);
-                }
+                },
             },
             pool: {
                 afterCreate: (conn: Connection, done: (err: MysqlError | null, conn: Connection) => void) => {
-                    conn.query('SET foreign_key_checks = OFF;', (err) => {
-                        if (err) done(err, conn);
+                    conn.query('SET foreign_key_checks = OFF;', (err1) => {
+                        if (err1) done(err1, conn);
                         else
-                            conn.query('SET autocommit = OFF;', (err) => {
-                                if (err) done(err, conn);
+                            conn.query('SET autocommit = OFF;', (err2) => {
+                                if (err2) done(err2, conn);
                                 else
-                                    conn.query('SET unique_checks = OFF;', (err) => {
-                                        done(err, conn);
+                                    conn.query('SET unique_checks = OFF;', (err3) => {
+                                        done(err3, conn);
                                     });
                             });
                     });
-                }
-            }
+                },
+            },
         }).on('query-error', (err) => {
             this.logger.error(err.code, err.name);
         });
@@ -104,7 +104,7 @@ export class MariaDBConnector implements DatabaseConnector {
             await this.extractForeignKeys(table);
             return table;
         }));
-        return Schema.fromJSON({ tables: tables });
+        return Schema.fromJSON({ tables });
     }
 
     private async extractColumns(table: Table) {
@@ -230,8 +230,7 @@ export class MariaDBConnector implements DatabaseConnector {
     private extractForeignKeys = async (table: Table) => {
         const foreignKeys = await this.getForeignKeys(table);
         table.referencedTables = [];
-        for (let c = 0; c < table.columns.length; c++) {
-            const column = table.columns[c];
+        for (const column of table.columns) {
             const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
             if (match) {
                 column.generator = Generators.foreignKey;
@@ -264,7 +263,7 @@ export class MariaDBConnector implements DatabaseConnector {
             return this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`);
         });
         await Promise.all(promises)
-            .catch(err => console.warn(err.message));
+            .catch(err => this.logger.error(err.message));
     }
 
     public async enableTriggers(table: string): Promise<void> {
@@ -277,7 +276,7 @@ export class MariaDBConnector implements DatabaseConnector {
                 TRIGGER ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME} ${trigger.ACTION_TIMING} ${trigger.EVENT_MANIPULATION}
                 ON ${trigger.EVENT_OBJECT_SCHEMA}.${trigger.EVENT_OBJECT_TABLE}
                 FOR EACH ROW
-                ${trigger.ACTION_STATEMENT}`
+                ${trigger.ACTION_STATEMENT}`,
             );
             this.triggers.splice(i, 1);
         }
@@ -286,7 +285,7 @@ export class MariaDBConnector implements DatabaseConnector {
     async getTablesInformation(): Promise<Table[]> {
         const tableNames = await this.dbConnection
             .select<{ name: string; }[]>([
-                this.dbConnection.raw('t.TABLE_NAME AS name')
+                this.dbConnection.raw('t.TABLE_NAME AS name'),
             ])
             .from('information_schema.tables as t')
             .where('t.TABLE_SCHEMA', this.database)
@@ -306,7 +305,7 @@ export class MariaDBConnector implements DatabaseConnector {
             .from('information_schema.COLUMNS')
             .where({
                 'TABLE_SCHEMA': this.database,
-                'TABLE_NAME': table.name
+                'TABLE_NAME': table.name,
             });
     }
 
@@ -316,14 +315,14 @@ export class MariaDBConnector implements DatabaseConnector {
                 'kcu2.table_name',
                 'kcu2.column_name',
                 'kcu2.constraint_schema',
-                this.dbConnection.raw('1 AS unique_index')
+                this.dbConnection.raw('1 AS unique_index'),
             ])
             .from('information_schema.KEY_COLUMN_USAGE AS kcu2')
             .innerJoin('information_schema.TABLE_CONSTRAINTS AS tc', function () {
                 this.on('tc.CONSTRAINT_SCHEMA', '=', 'kcu2.CONSTRAINT_SCHEMA')
                     .andOn('tc.TABLE_NAME', '=', 'kcu2.TABLE_NAME')
                     .andOn('tc.CONSTRAINT_NAME', '=', 'kcu2.CONSTRAINT_NAME')
-                    .andOnIn('tc.CONSTRAINT_TYPE', ["PRIMARY KEY", "UNIQUE"]);
+                    .andOnIn('tc.CONSTRAINT_TYPE', ['PRIMARY KEY', 'UNIQUE']);
             })
             .groupBy(['kcu2.TABLE_NAME', 'kcu2.CONSTRAINT_NAME'])
             .having(this.dbConnection.raw('count(kcu2.CONSTRAINT_NAME) < 2'))
@@ -334,7 +333,7 @@ export class MariaDBConnector implements DatabaseConnector {
             'kcu.column_name AS column',
             'kcu.referenced_table_name AS foreignTable',
             'kcu.referenced_column_name AS foreignColumn',
-            'unique_index AS uniqueIndex'
+            'unique_index AS uniqueIndex',
         ])
             .from('information_schema.key_column_usage as kcu')
             .leftJoin(subQuery, function () {
