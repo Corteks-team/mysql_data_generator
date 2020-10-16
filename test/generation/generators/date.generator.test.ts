@@ -1,15 +1,12 @@
-import { MersenneTwister19937, Random } from "random-js";
-import { DateGenerator } from "../../../src/generation/generators";
-import { Generators } from "../../../src/generation/generators/generators";
-import { Monotonic } from "../../../src/schema/schema.class";
+import { MersenneTwister19937, Random } from 'random-js';
+import { DateGenerator } from '../../../src/generation/generators/date.generator';
+import { Generators } from '../../../src/generation/generators/generators';
+import { Monotonic } from '../../../src/schema/schema.class';
 import { CustomizedTable, CustomizedColumn } from '../../../src/schema/customized-schema.class';
 import { Builder } from '../../../src/builder';
 
-let random = new Random(MersenneTwister19937.seed(42));
+const random = new Random(MersenneTwister19937.seed(42));
 describe('DateGenerator', () => {
-    beforeAll(() => {
-
-    });
     it('should generate date', () => {
         const column: CustomizedColumn = new Builder(CustomizedColumn)
             .set('generator', Generators.date)
@@ -26,7 +23,7 @@ describe('DateGenerator', () => {
         const dateGenerator = new DateGenerator(random, table, column);
         expect(dateGenerator.generate(0, row)).toStrictEqual(new Date('2018-12-17T15:50:11.304Z'));
     });
-    it('should generate monotonic date', () => {
+    it('should generate monotonic date', async () => {
         const maxLines = 10;
 
         const column: CustomizedColumn = new Builder(CustomizedColumn)
@@ -43,7 +40,7 @@ describe('DateGenerator', () => {
         const row = {};
 
         const dateGenerator = new DateGenerator(random, table, column);
-        dateGenerator.init();
+        await dateGenerator.init();
         const results: Date[] = new Array(maxLines).fill(true).map((value, index) => (dateGenerator.generate(index, row)));
 
         expect(results).toHaveLength(maxLines);

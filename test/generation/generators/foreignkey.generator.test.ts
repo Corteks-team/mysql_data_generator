@@ -1,11 +1,11 @@
-import { MersenneTwister19937, Random } from "random-js";
-import { ForeignKeyGenerator } from "../../../src/generation/generators";
-import { Generators } from "../../../src/generation/generators/generators";
+import { MersenneTwister19937, Random } from 'random-js';
+import { ForeignKeyGenerator } from '../../../src/generation/generators/foreignkey.generator';
+import { Generators } from '../../../src/generation/generators/generators';
 import { CustomizedTable, CustomizedColumn } from '../../../src/schema/customized-schema.class';
 import { Builder } from '../../../src/builder';
 import { TestConnector } from '../../test-connector';
 
-let random = new Random(MersenneTwister19937.seed(42));
+const random = new Random(MersenneTwister19937.seed(42));
 describe('ForeignKeyGenerator', () => {
     it('should generate values from foreign key', async () => {
         const idColumn: CustomizedColumn = new Builder(CustomizedColumn)
@@ -23,7 +23,7 @@ describe('ForeignKeyGenerator', () => {
             .set('generator', Generators.foreignKey)
             .set('foreignKey', {
                 table: 'mother',
-                column: 'id'
+                column: 'id',
             })
             .build();
 

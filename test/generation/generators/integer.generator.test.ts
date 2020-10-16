@@ -1,10 +1,10 @@
-import { MersenneTwister19937, Random } from "random-js";
-import { IntegerGenerator } from "../../../src/generation/generators";
-import { Generators } from "../../../src/generation/generators/generators";
+import { MersenneTwister19937, Random } from 'random-js';
+import { IntegerGenerator } from '../../../src/generation/generators/integer.generator';
+import { Generators } from '../../../src/generation/generators/generators';
 import { CustomizedTable, CustomizedColumn } from '../../../src/schema/customized-schema.class';
 import { Builder } from '../../../src/builder';
 
-let random = new Random(MersenneTwister19937.seed(42));
+const random = new Random(MersenneTwister19937.seed(42));
 describe('IntegerGenerator', () => {
     it('should generate bits', () => {
         const column: CustomizedColumn = new Builder(CustomizedColumn)
