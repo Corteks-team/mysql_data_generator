@@ -14,7 +14,7 @@ export class PGConnector implements DatabaseConnector {
     private database: string;
 
     constructor(
-        uri: string
+        uri: string,
     ) {
         this.dbConnection = Knex({
             client: 'pg',
@@ -31,8 +31,8 @@ export class PGConnector implements DatabaseConnector {
                 },
                 debug: (message) => {
                     this.logger.debug(message);
-                }
-            }
+                },
+            },
         }).on('query-error', (err) => {
             this.logger.error(err.code, err.name);
         });
@@ -49,7 +49,7 @@ export class PGConnector implements DatabaseConnector {
 
     async countLines(table: Table) {
         const query = this.dbConnection(table.name).withSchema(this.database).count();
-        return parseInt((await query)[0]['count'] as string, 10);
+        return parseInt((await query)[0].count as string, 10);
     }
 
     async emptyTable(table: Table) {
@@ -63,7 +63,7 @@ export class PGConnector implements DatabaseConnector {
 
     async insert(table: string, rows: any[]): Promise<number> {
         if (rows.length === 0) return 0;
-        let query = await this.dbConnection(table)
+        const query = await this.dbConnection(table)
             .withSchema(this.database)
             .insert(rows)
             .toQuery();
@@ -86,7 +86,7 @@ export class PGConnector implements DatabaseConnector {
 
             return table;
         }));
-        return Schema.fromJSON({ tables: tables });
+        return Schema.fromJSON({ tables });
     }
 
     private async extractColumns(table: Table) {
@@ -194,14 +194,14 @@ export class PGConnector implements DatabaseConnector {
                     const result = await this.dbConnection.select([
                         'n.nspname as enum_schema',
                         't.typname as enum_name',
-                        'e.enumlabel as enum_value'
+                        'e.enumlabel as enum_value',
                     ])
                         .from('pg_type as t')
                         .join('pg_enum as e', 't.oid', 'e.enumtypid')
                         .join('pg_catalog.pg_namespace as n', 'n.oid', 't.typnamespace')
                         .where('n.nspname', 'postgres')
                         .andWhere('t.typname', 'transferdirection');
-                    column.values = result.map((row) => row['enum_value']);
+                    column.values = result.map((row) => row.enum_value);
                     break;
             }
             return column;
@@ -211,8 +211,7 @@ export class PGConnector implements DatabaseConnector {
     private extractForeignKeys = async (table: Table) => {
         const foreignKeys = await this.getForeignKeys(table);
         table.referencedTables = [];
-        for (let c = 0; c < table.columns.length; c++) {
-            const column = table.columns[c];
+        for (const column of table.columns) {
             const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
             if (match) {
                 column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
@@ -244,7 +243,7 @@ export class PGConnector implements DatabaseConnector {
             return this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`);
         });
         await Promise.all(promises)
-            .catch(err => console.warn(err.message));
+            .catch(err => this.logger.warn(err.message));
     }
 
     public async enableTriggers(table: string): Promise<void> {
@@ -257,7 +256,7 @@ export class PGConnector implements DatabaseConnector {
                 TRIGGER ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME} ${trigger.ACTION_TIMING} ${trigger.EVENT_MANIPULATION}
                 ON ${trigger.EVENT_OBJECT_SCHEMA}.${trigger.EVENT_OBJECT_TABLE}
                 FOR EACH ROW
-                ${trigger.ACTION_STATEMENT}`
+                ${trigger.ACTION_STATEMENT}`,
             );
             this.triggers.splice(i, 1);
         }
@@ -283,7 +282,7 @@ export class PGConnector implements DatabaseConnector {
             .from('information_schema.columns')
             .where({
                 'table_schema': this.database,
-                'table_name': table.name
+                'table_name': table.name,
             });
     }
 
@@ -292,7 +291,7 @@ export class PGConnector implements DatabaseConnector {
             .select([
                 'kcu.column_name AS column',
                 'ccu.table_name AS foreignTable',
-                'ccu.column_name AS foreignColumn'
+                'ccu.column_name AS foreignColumn',
             ])
             .from('information_schema.table_constraints AS tc')
             .innerJoin('information_schema.key_column_usage AS kcu', function () {
