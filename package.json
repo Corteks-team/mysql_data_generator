@@ -1,6 +1,6 @@
 {
     "name": "@corteks/mysql-data-generator",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "author": "Corteks",
     "keywords": [
         "database",
@@ -55,7 +55,7 @@
     "scripts": {
         "dev": "nodemon --no-stdin",
         "build": "tsc",
-        "prepublishOnly": "npm build && npm test",
+        "prepublishOnly": "npm run build && npm run test",
         "test": "jest",
         "lint": "tslint -p tsconfig.json -c tslint.json"
     },
