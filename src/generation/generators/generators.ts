@@ -12,6 +12,7 @@ export enum Generators {
     string = 'string',
     values = 'values',
     foreignKey = 'foreignKey',
+    function = 'function',
 }
 
 export abstract class AbstractGenerator<T>{

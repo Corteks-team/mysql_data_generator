@@ -73,8 +73,13 @@ export class Column {
     @ValidateNested()
     @IsOptional()
     foreignKey?: ForeignKey;
+    @ValidateNested()
+    @IsOptional()
     values?: Values;
     @IsOptional()
     @IsString()
     monotonic: Monotonic = Monotonic.NONE;
+    @ValidateNested()
+    @IsString()
+    customFunction?: string;
 }
