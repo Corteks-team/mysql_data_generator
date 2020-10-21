@@ -81,6 +81,17 @@ export class CustomizedSchema extends CustomSchema {
             if (customColumn?.values)
                 customizedColumnBuilder.set('values', CustomizedSchema.parseValues(customColumn.values, customSchema.settings.values));
             return customizedColumnBuilder.build();
+        }).sort((c1, c2) => {
+            if (!customTable) return 0;
+            if (!customTable.columns) return 0;
+            const cc1 = customTable.columns.findIndex(c => c.name.toLowerCase() === c1.name.toLowerCase());
+            const cc2 = customTable.columns.findIndex(c => c.name.toLowerCase() === c2.name.toLowerCase());
+
+            if (cc1 === -1 && cc2 >= 0) return -1;
+            if (cc1 === -1 && cc2 === -1) return 0;
+            if (cc1 >= 0 && cc2 === -1) return 1;
+            if (cc1 < cc2) return -1;
+            return 1;
         });
         return customizedTable;
     }

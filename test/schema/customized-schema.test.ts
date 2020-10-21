@@ -1,8 +1,8 @@
-import { CustomSchema } from '../../../src/schema/custom-schema.class';
-import { Schema, Table, Column } from '../../../src/schema/schema.class';
-import { CustomizedSchema } from '../../../src/schema/customized-schema.class';
-import { Generators } from '../../../src/generation/generators/generators';
-import { Builder } from '../../../src/builder';
+import { CustomSchema } from '../../src/schema/custom-schema.class';
+import { Schema, Table, Column } from '../../src/schema/schema.class';
+import { CustomizedSchema } from '../../src/schema/customized-schema.class';
+import { Generators } from '../../src/generation/generators/generators';
+import { Builder } from '../../src/builder';
 
 describe('CustomizedSchema', () => {
     it('handle missing custom table', async () => {
@@ -13,7 +13,7 @@ describe('CustomizedSchema', () => {
         const table = new Builder(Table)
             .set('name', 'table1')
             .set('columns', [
-                column
+                column,
             ])
             .build();
 
@@ -33,7 +33,7 @@ describe('CustomizedSchema', () => {
         const table = new Builder(Table)
             .set('name', 'table1')
             .set('columns', [
-                column
+                column,
             ])
             .build();
 
@@ -45,7 +45,7 @@ describe('CustomizedSchema', () => {
             generators: [Generators.integer],
             options: {
                 autoIncrement: true,
-            }
+            },
         });
         const result = CustomizedSchema.create(schema, customSchema);
         expect(result.tables[0].columns).toHaveLength(1);
@@ -60,7 +60,7 @@ describe('CustomizedSchema', () => {
         const table = new Builder(Table)
             .set('name', 'table1')
             .set('columns', [
-                column
+                column,
             ])
             .build();
 
@@ -83,7 +83,7 @@ describe('CustomizedSchema', () => {
         const table = new Builder(Table)
             .set('name', 'table1')
             .set('columns', [
-                column
+                column,
             ])
             .build();
 
@@ -98,11 +98,39 @@ describe('CustomizedSchema', () => {
                 {
                     name: 'column1',
                     max: 100,
-                    values: []
-                }
-            ]
+                    values: [],
+                },
+            ],
         }];
         const result = CustomizedSchema.create(schema, customSchema);
         expect(result.tables[0].columns[0].max).toBe(100);
+    });
+    it.only('reorder columns', async () => {
+        const columns = [
+            new Builder(Column).set('name', 'column1').build(),
+            new Builder(Column).set('name', 'column2').build(),
+            new Builder(Column).set('name', 'column3').build(),
+        ];
+        const table = new Builder(Table)
+            .set('name', 'table1')
+            .set('columns', columns)
+            .build();
+        const schema = new Schema();
+        schema.tables = [table];
+
+        const customSchema = new CustomSchema();
+        customSchema.tables = [{
+            name: 'table1',
+            maxLines: 100,
+            columns: [
+                { name: 'column2' },
+                { name: 'column1' },
+            ],
+        }];
+
+        const result = CustomizedSchema.create(schema, customSchema);
+        expect(result.tables[0].columns[0].name).toBe('column3');
+        expect(result.tables[0].columns[1].name).toBe('column2');
+        expect(result.tables[0].columns[2].name).toBe('column1');
     });
 });

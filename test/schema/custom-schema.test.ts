@@ -1,4 +1,4 @@
-import { CustomSchema } from '../../../src/schema/custom-schema.class';
+import { CustomSchema } from '../../src/schema/custom-schema.class';
 
 describe('CustomSchema', () => {
     it('throw if JSON not valide', async () => {
