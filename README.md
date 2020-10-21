@@ -38,6 +38,7 @@ For every tables listed in `settings/schema.json`, the tool will:
 -   get the values of foreign keys if needed
 -   generate batches of 1000 rows
 -   insert rows until it reaches the defined table limit
+-   columns in table are ordered accordingly to your custom schema so you can rely on other column value in the same row.
 
 Available options in `custom_schema.json`:
 
@@ -56,10 +57,11 @@ Available options in `custom_schema.json`:
     -   `Table.addLines: number` // Number of rows to be inserted on a single run. The number of lines resulting in the table will not exceed `Table.maxLines`
     -   `Table.columns: Column[]` // list of columns handled by the tool
         -   `Column.name: string` // column name
-        -   `Column.generator: bit | boolean | date | foreignKey | integer | real | time | string | values` // data type generator used for this column
+        -   `Column.generator: bit | boolean | date | foreignKey | integer | real | time | string | values | function` // data type generator used for this column
         -   `Column.[key: string]: any[]` // list of options for this column
         -   `Column.foreignKey: { table: string, column: string, where: string }` // link to the table.column referenced by this foreign key. A custom clause can ba added to filter value from the foreign column
         -   `Column.values: string | any[] | { [key: string]: number }`
             // Name of the list of values to use for this column.
             // You can also directly specify an array of strings for values.
             // Or you can use an object to specify a ratio per value. Ratio will be a number between 0 and 1.
+        -   `Column.customFunction: (rowIndex: number, row: { [key: string]: string | number }` // a string representing a javascript custom function. It will receive the row index and the full row as arguments.
