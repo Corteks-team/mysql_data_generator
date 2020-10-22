@@ -79,7 +79,7 @@ export class Column {
     @IsOptional()
     @IsString()
     monotonic: Monotonic = Monotonic.NONE;
-    @ValidateNested()
+    @IsOptional()
     @IsString()
     customFunction?: string;
 }
