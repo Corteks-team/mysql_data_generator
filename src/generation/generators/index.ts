@@ -12,6 +12,7 @@ import { TimeGenerator } from './time.generator';
 import { ValuesGenerator } from './values.generator';
 import { ForeignKeyGenerator } from './foreignkey.generator';
 import { DatabaseConnector } from '../../database/database-connector-builder';
+import { FunctionGenerator } from './function.generator';
 
 export class GeneratorBuilder {
     constructor(
@@ -54,6 +55,9 @@ export class GeneratorBuilder {
             case Generators.foreignKey:
                 generator = new ForeignKeyGenerator(this.random, this.table, column);
                 (generator as ForeignKeyGenerator).setDbConnector(this.dbConnector);
+                break;
+            case Generators.function:
+                generator = new FunctionGenerator(this.random, this.table, column);
                 break;
             default:
             case Generators.none:
