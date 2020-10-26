@@ -1,6 +1,7 @@
 import { Column, ForeignKey, Schema, Table } from './schema.class';
 import { CustomSchema } from './custom-schema.class';
 import { Builder } from '../builder';
+import { Generators } from '../generation/generators/generators';
 
 export class CustomizedSchema extends CustomSchema {
     public tables: CustomizedTable[] = [];
@@ -42,6 +43,7 @@ export class CustomizedSchema extends CustomSchema {
         } else {
             parsedValues = values;
         }
+        if (parsedValues.length === 0) throw new Error(`No values found`)
         return parsedValues;
     }
 
@@ -78,8 +80,14 @@ export class CustomizedSchema extends CustomSchema {
                 customizedColumnBuilder.set('foreignKey', customColumn.foreignKey);
                 customizedTable.referencedTables.push(customColumn.foreignKey.table);
             }
-            if (customColumn?.values)
-                customizedColumnBuilder.set('values', CustomizedSchema.parseValues(customColumn.values, customSchema.settings.values));
+            if (customColumn.generator === Generators.values) {
+                if (!customColumn.values) throw new Error(`No values found for ${table.name}.${column.name}`);
+                try {
+                    customizedColumnBuilder.set('values', CustomizedSchema.parseValues(customColumn.values, customSchema.settings.values));
+                } catch (err) {
+                    throw new Error(`No values found for ${table.name}.${column.name}`);
+                }
+            }
             return customizedColumnBuilder.build();
         }).sort((c1, c2) => {
             if (!customTable) return 0;
