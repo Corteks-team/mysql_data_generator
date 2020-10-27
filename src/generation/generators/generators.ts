@@ -22,6 +22,8 @@ export abstract class AbstractGenerator<T>{
         protected column: CustomizedColumn,
     ) { }
 
+    public static validate(table: CustomizedTable, column: CustomizedColumn): boolean { return true };
+
     public async init(): Promise<AbstractGenerator<T>> { return this; }
 
     public abstract generate(rowIndex: number, row: { [key: string]: any; }): T;

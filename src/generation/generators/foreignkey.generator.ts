@@ -5,6 +5,13 @@ export class ForeignKeyGenerator extends AbstractGenerator<string | number | und
     private dbConnector: DatabaseConnector | undefined;
     private values: (string | number)[] = [];
 
+    validate() {
+        if (this.column.foreignKey === undefined) throw new Error(`foreignKey object required for type foreignKey: ${this.table.name}.${this.column.name}`);
+        if (this.column.foreignKey.table === undefined) throw new Error(`foreignKey.table value required for type foreignKey: ${this.table.name}.${this.column.name}`);
+        if (this.column.foreignKey.column === undefined) throw new Error(`foreignKey.table value required for type foreignKey: ${this.table.name}.${this.column.name}`);
+        return true;
+    }
+
     setDbConnector(dbConnector: DatabaseConnector) {
         this.dbConnector = dbConnector;
     }

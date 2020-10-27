@@ -4,6 +4,12 @@ import { Monotonic } from '../../schema/schema.class';
 export class DateGenerator extends AbstractGenerator<Date> {
     protected values: Date[] = [];
 
+    validate() {
+        if (this.column.minDate === undefined) throw new Error(`minDate value required for type date: ${this.table.name}.${this.column.name}`);
+        if (this.column.maxDate === undefined) throw new Error(`maxDate value required for type date: ${this.table.name}.${this.column.name}`);
+        return true;
+    }
+
     async init() {
         if (this.column.monotonic !== undefined && this.column.monotonic !== Monotonic.NONE) {
             this.monotonic(this.column.monotonic);

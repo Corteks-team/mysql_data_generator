@@ -23,6 +23,45 @@ export class GeneratorBuilder {
 
     }
 
+    static validate(table: CustomizedTable, column: CustomizedColumn): boolean {
+        switch (column.generator) {
+            case Generators.bit:
+                BitGenerator.validate(table, column);
+                break;
+            case Generators.boolean:
+                BooleanGenerator.validate(table, column);
+                break;
+            case Generators.integer:
+                IntegerGenerator.validate(table, column);
+                break;
+            case Generators.real:
+                RealGenerator.validate(table, column);
+                break;
+            case Generators.date:
+                DateGenerator.validate(table, column);
+                break;
+            case Generators.time:
+                TimeGenerator.validate(table, column);
+                break;
+            case Generators.string:
+                StringGenerator.validate(table, column);
+                break;
+            case Generators.values:
+                ValuesGenerator.validate(table, column);
+                break;
+            case Generators.foreignKey:
+                ForeignKeyGenerator.validate(table, column);
+                break;
+            case Generators.function:
+                FunctionGenerator.validate(table, column);
+                break;
+            default:
+            case Generators.none:
+                throw new Error(`No generator defined for column: ${table.name}.${column.name}`);
+        }
+        return true;
+    }
+
     build(
         column: CustomizedColumn,
     ) {

@@ -1,7 +1,8 @@
 import { Column, ForeignKey, Schema, Table } from './schema.class';
 import { CustomSchema } from './custom-schema.class';
 import { Builder } from '../builder';
-import { Generators } from '../generation/generators/generators';
+import { AbstractGenerator, Generators } from '../generation/generators/generators';
+import { GeneratorBuilder } from '../generation/generators';
 
 export class CustomizedSchema extends CustomSchema {
     public tables: CustomizedTable[] = [];
@@ -81,15 +82,11 @@ export class CustomizedSchema extends CustomSchema {
                 customizedColumnBuilder.set('foreignKey', customColumn.foreignKey);
                 customizedTable.referencedTables.push(customColumn.foreignKey.table);
             }
-            if (customColumn.generator === Generators.values) {
-                if (!customColumn.values) throw new Error(`No values found for ${table.name}.${column.name}`);
-                try {
-                    customizedColumnBuilder.set('values', CustomizedSchema.parseValues(customColumn.values, customSchema.settings.values));
-                } catch (err) {
-                    throw new Error(`No values found for ${table.name}.${column.name}`);
-                }
-            }
-            return customizedColumnBuilder.build();
+            customizedColumnBuilder.set('values', CustomizedSchema.parseValues(customColumn.values || [], customSchema.settings.values));
+
+            const customizedColumn = customizedColumnBuilder.build();
+            GeneratorBuilder.validate(customizedTable, customizedColumn);
+            return customizedColumn;
         }).sort((c1, c2) => {
             if (!customTable) return 0;
             if (!customTable.columns) return 0;
