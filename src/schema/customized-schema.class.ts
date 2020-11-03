@@ -82,7 +82,13 @@ export class CustomizedSchema extends CustomSchema {
                 customizedColumnBuilder.set('foreignKey', customColumn.foreignKey);
                 customizedTable.referencedTables.push(customColumn.foreignKey.table);
             }
-            customizedColumnBuilder.set('values', CustomizedSchema.parseValues(customColumn.values || [], customSchema.settings.values));
+            if (customColumn.generator === Generators.values) customizedColumnBuilder.set('values', CustomizedSchema.parseValues(customColumn.values || [], customSchema.settings.values));
+
+            if (customColumn.generator === Generators.string) {
+                if (customColumn.max !== undefined && customSchema.settings.maxLengthValue !== undefined && customColumn.max > customSchema.settings.maxLengthValue) {
+                    customizedColumnBuilder.set('max', customSchema.settings.maxLengthValue);
+                }
+            }
 
             const customizedColumn = customizedColumnBuilder.build();
             GeneratorBuilder.validate(customizedTable, customizedColumn);

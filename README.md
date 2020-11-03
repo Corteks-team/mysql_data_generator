@@ -47,6 +47,7 @@ Available options in `custom_schema.json`:
     -   `engine: "MariaDB"` // only MariaDB is supported for the time being but it should also be compatible with MySQL.
     -   `ignoredTables: string[]` // list of table name that should not be analysed nor filled
     -   `options: Array<[key: string]: any[]>` // an array of column options to configure specific generators for the whole file `generator` is an array of string to allow multiple settings at once
+    -   `maxLengthValue: number?` // Hard limit of the maximum number of characters in `string` column type. This will override your custom column `max` value if it's bigger than `maxLengthValue`.
     -   `seed: number` // The seed used by the random generator. This is optional. filling process.
     -   `tablesToFill: string[]` // list of table name that should be analysed and filled. You can set this parameter or `ignoredTables` depending on the number of table to work with
     -   `values: [key: string]: any[]` // an object of user defined array of values

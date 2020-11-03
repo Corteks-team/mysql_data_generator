@@ -21,6 +21,9 @@ export class CustomSettings {
     @IsArray()
     @ValidateNested({ each: true })
     tablesToFill: string[] = [];
+    @IsNumber()
+    @IsOptional()
+    maxLengthValue?: number;
     values: { [key: string]: any[]; } = {};
     options: {
         generators: Generators[],
