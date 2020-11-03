@@ -8,6 +8,7 @@ describe('CustomizedSchema', () => {
     it('handle missing custom table', async () => {
         const column = new Builder(Column)
             .set('name', 'column1')
+            .set('generator', Generators.string)
             .build();
 
         const table = new Builder(Table)
@@ -55,6 +56,7 @@ describe('CustomizedSchema', () => {
     it('overrides table options', async () => {
         const column = new Builder(Column)
             .set('name', 'column1')
+            .set('generator', Generators.string)
             .build();
 
         const table = new Builder(Table)
@@ -78,6 +80,7 @@ describe('CustomizedSchema', () => {
     it('overrides column options', async () => {
         const column = new Builder(Column)
             .set('name', 'column1')
+            .set('generator', Generators.string)
             .build();
 
         const table = new Builder(Table)
@@ -105,11 +108,20 @@ describe('CustomizedSchema', () => {
         const result = CustomizedSchema.create(schema, customSchema);
         expect(result.tables[0].columns[0].max).toBe(100);
     });
-    it.only('reorder columns', async () => {
+    it('reorder columns', async () => {
         const columns = [
-            new Builder(Column).set('name', 'column1').build(),
-            new Builder(Column).set('name', 'column2').build(),
-            new Builder(Column).set('name', 'column3').build(),
+            new Builder(Column)
+                .set('name', 'column1')
+                .set('generator', Generators.string)
+                .build(),
+            new Builder(Column)
+                .set('name', 'column2')
+                .set('generator', Generators.string)
+                .build(),
+            new Builder(Column)
+                .set('name', 'column3')
+                .set('generator', Generators.string)
+                .build(),
         ];
         const table = new Builder(Table)
             .set('name', 'table1')
