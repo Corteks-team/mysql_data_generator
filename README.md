@@ -1,6 +1,6 @@
 This is a tool to easily fill a SQL database.
-It is able to analyse a schema and generate a `settings/schema.json` which will be used to generate accurate data. It does its best to handle foreign keys.
-You can provide a `settings/custom_schema.json` to customize `settings/schema.json` during the analyse phase. This will allow you to override datatype for a column, force the use of a foreign key
+It is able to analyse a schema and generate a `settings/schema.jsonc` which will be used to generate accurate data. It does its best to handle foreign keys.
+You can provide a `settings/custom_schema.jsonc` to customize `settings/schema.jsonc` during the generation phase. This will allow you to override datatype for a column, force the use of a foreign key
 or specify a list of values.
 
 ## functionalities
@@ -14,26 +14,25 @@ or specify a list of values.
 
 ## 1. Analysis
 
-The first step is to analyse your database to generate a `settings/schema.json` by providing database credentials:
+The first step is to analyse your database to generate a `settings/schema.jsonc` by providing database credentials:
 
 ```
 npm install -g @corteks/mysql-data-generator
 
-mysqldatagen --host 127.0.0.1 --user USER --password PASSWORD --database DATABASE --analyse
+mysqldatagen --db mysql://user:password@127.0.0.1:3306/database --analyse
 ```
 
-If you want to customize the schema, copy `settings/schema.json` to `settings/custom_schema.json`.
-Update the `settings/custom_schema.json` to fit your needs.
+If you want to customize the schema, modify the default `settings/custom_schema.jsonc` that has also be generated.
 
 ## 2. Data generation
 
 Next step is to fill the database with randomly generated values:
 
 ```
-mysqldatagen --host 127.0.0.1 --user USER --password PASSWORD --database DATABASE
+mysqldatagen --db mysql://user:password@127.0.0.1:3306/database
 ```
 
-For every tables listed in `settings/schema.json`, the tool will:
+For every tables listed in `settings/schema.jsonc`, the tool will:
 
 -   get the values of foreign keys if needed
 -   generate batches of 1000 rows
