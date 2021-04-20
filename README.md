@@ -32,6 +32,9 @@ Next step is to fill the database with randomly generated values:
 mysqldatagen --db mysql://user:password@127.0.0.1:3306/database
 ```
 
+If any `.sql` scripts are provided within the `settings/scripts` folder, they will be played before generation. Those scripts can contains `DELIMITER` caommands as they will be run directly by `MySQL` client executable.
+As they will be run every time the generation is launched you have to take care of the cleanup.
+
 For every tables listed in `settings/schema.jsonc`, the tool will:
 
 -   get the values of foreign keys if needed
