@@ -1,14 +1,16 @@
-import 'reflect-metadata';
-import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter, KeyPress, Modifiers } from '@corteks/clify';
+import { execSync } from 'child_process';
 import * as fs from 'fs-extra';
-import { Filler } from './generation/filler';
-import { DatabaseConnectorBuilder, DatabaseConnector } from './database/database-connector-builder';
-import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
-import { Schema } from './schema/schema.class';
+import { getLogger } from 'log4js';
+import * as path from 'path';
+import 'reflect-metadata';
+import { parse } from 'uri-js';
+import { DatabaseConnector, DatabaseConnectorBuilder } from './database/database-connector-builder';
+import { Filler } from './generation/filler';
 import { CustomSchema } from './schema/custom-schema.class';
 import { CustomizedSchema } from './schema/customized-schema.class';
+import { Schema } from './schema/schema.class';
 
 const logger = getLogger();
 logger.level = 'debug';
@@ -40,6 +42,9 @@ class Main extends CliMainClass {
         if (!fs.pathExistsSync('settings')) {
             fs.mkdirSync('settings');
         }
+        if (!fs.pathExistsSync(path.join('settings', 'scripts'))) {
+            fs.mkdirSync(path.join('settings', 'scripts'));
+        }
         try {
             if (this.analyse) {
                 return await this.generateSchemaFromDB();
@@ -70,6 +75,28 @@ class Main extends CliMainClass {
         return 0;
     }
 
+    async runScripts() {
+        if (!this.dbConnector) throw new Error('DB connection not ready');
+        if (!fs.existsSync(path.join('settings', 'scripts'))) {
+            logger.info('No scripts provided.');
+            return;
+        }
+        const scripts = fs.readdirSync(path.join('settings', 'scripts'));
+        if (scripts.length === 0) {
+            logger.info('No scripts provided.');
+            return;
+        }
+        const parsedUri = parse(this.uri!);
+        for (const script of scripts) {
+            if (!script.endsWith('.sql')) continue;
+            logger.info(`Running script: ${script}`);
+            execSync(`mysql -h ${parsedUri.host!} --port=${parsedUri.port!.toString()} --protocol=tcp --default-character-set=utf8 -c -u ${parsedUri.userinfo!.split(':')[0]} -p"${parsedUri.userinfo!.split(':')[1]}" ${parsedUri.path?.replace('/', '')} < "${script}"`, {
+                cwd: path.join('settings', 'scripts'),
+                stdio: 'pipe',
+            });
+        }
+    }
+
     async generateData() {
         if (!this.dbConnector) throw new Error('DB connection not ready');
         const schema: Schema = await Schema.fromJSON(fs.readJSONSync(path.join('settings', 'schema.json')));
@@ -78,6 +105,13 @@ class Main extends CliMainClass {
             customSchema = JSONC.parse(fs.readFileSync(path.join('settings', 'custom_schema.jsonc')).toString());
         } catch (ex) {
             logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
+        }
+        try {
+            await this.runScripts();
+        } catch (ex) {
+            logger.error('An error occured while running scripts:');
+            logger.error(ex.message);
+            return;
         }
         const customizedSchema = CustomizedSchema.create(schema, customSchema);
         this.filler = new Filler(this.dbConnector, customizedSchema, logger);
