@@ -1,7 +1,8 @@
-import { Column } from './schema.class';
-import { ValidateNested, IsArray, validateOrReject, IsEnum, IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
-import { Type, plainToClass, classToPlain } from 'class-transformer';
+import { classToPlain, plainToClass, Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsString, ValidateNested, validateOrReject } from 'class-validator';
 import { DatabaseEngines } from '../database/database-engines';
+import { Generators } from '../generation/generators/generators';
+import { Column } from './schema.class';
 
 export class CustomSettings {
     @IsArray()
@@ -20,16 +21,19 @@ export class CustomSettings {
     @IsArray()
     @ValidateNested({ each: true })
     tablesToFill: string[] = [];
+    @IsNumber()
+    @IsOptional()
+    maxLengthValue?: number;
     values: { [key: string]: any[]; } = {};
-    options: Array<
-        {
-            dataTypes: string[],
-            options: Partial<Column>;
-        }
-    > = [];
+    options: {
+        generators: Generators[],
+        options: Partial<Column>;
+    }[] = [];
     @IsNumber()
     @IsOptional()
     seed?: number;
+    @IsNumber()
+    maxRowsPerBatch: number = 1000;
 }
 
 export class CustomSchema {

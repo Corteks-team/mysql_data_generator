@@ -1,34 +1,26 @@
-import 'reflect-metadata';
-import { getLogger } from 'log4js';
 import { CliMain, CliMainClass, CliParameter, KeyPress, Modifiers } from '@corteks/clify';
+import { execSync } from 'child_process';
+import cliProgress, { SingleBar } from 'cli-progress';
+import colors from 'colors';
 import * as fs from 'fs-extra';
-import { DatabaseConnectorBuilder, DatabaseConnector } from './database/database-connector-builder';
-import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
-import { Schema } from './schema/schema.class';
+import { getLogger } from 'log4js';
+import * as path from 'path';
+import 'reflect-metadata';
+import { parse } from 'uri-js';
+import { DatabaseConnector, DatabaseConnectorBuilder } from './database/database-connector-builder';
+import { Filler, ProgressEvent } from './generation/filler';
 import { CustomSchema } from './schema/custom-schema.class';
 import { CustomizedSchema } from './schema/customized-schema.class';
-import { Generator, ProgressEvent } from './generation/generator';
-import colors from 'colors';
-import cliProgress, { SingleBar } from 'cli-progress';
-import { DatabaseEngines } from './database/database-engines';
+import { Schema } from './schema/schema.class';
 
 const logger = getLogger();
-logger.level = "debug";
+logger.level = 'debug';
 
 @CliMain
 class Main extends CliMainClass {
-    @CliParameter({ alias: 'db', demandOption: true, description: 'database', })
-    private database: string | undefined = undefined;
-
-    @CliParameter({ alias: 'h' })
-    private host: string = '127.0.0.1:3306';
-
-    @CliParameter()
-    private user: string = 'root';
-
-    @CliParameter()
-    private password: string = 'root';
+    @CliParameter({ alias: 'db', demandOption: true, description: 'Database URI. Eg: mysql://user:password@127.0.0.1:3306/database' })
+    private uri: string | undefined = undefined;
 
     @CliParameter()
     private analyse: boolean = false;
@@ -37,25 +29,23 @@ class Main extends CliMainClass {
     private reset: boolean = false;
 
     private dbConnector: DatabaseConnector | undefined;
-    private generator: Generator | undefined;
+    private filler: Filler | undefined;
 
     async main(): Promise<number> {
-        if (!this.database) throw new Error('Please provide a valid database name');
-        const [host, port] = this.host.split(':');
-        const dbConnectorBuilder = new DatabaseConnectorBuilder(DatabaseEngines.MARIADB);
+        if (!this.uri) throw new Error('Please provide a valid database uri');
+
+        const dbConnectorBuilder = new DatabaseConnectorBuilder(this.uri);
         try {
-            this.dbConnector = await dbConnectorBuilder
-                .setHost(host)
-                .setPort(parseInt(port, 10))
-                .setDatabase(this.database)
-                .setCredentials(this.user, this.password)
-                .build();
+            this.dbConnector = await dbConnectorBuilder.build();
         } catch (err) {
             logger.error(err.message);
             return 1;
         }
         if (!fs.pathExistsSync('settings')) {
             fs.mkdirSync('settings');
+        }
+        if (!fs.pathExistsSync(path.join('settings', 'scripts'))) {
+            fs.mkdirSync(path.join('settings', 'scripts'));
         }
         try {
             if (this.analyse) {
@@ -64,7 +54,7 @@ class Main extends CliMainClass {
 
             await this.generateData();
         } catch (ex) {
-            if (ex.code == 'ENOENT') {
+            if (ex.code === 'ENOENT') {
                 logger.error('Unable to read from ./settings/schema.json. Please run with --analyse first.');
             } else {
                 logger.error(ex);
@@ -81,27 +71,55 @@ class Main extends CliMainClass {
         const schema = await this.dbConnector.getSchema();
         fs.writeJSONSync(path.join('settings', 'schema.json'), schema.toJSON(), { spaces: 4 });
         if (!fs.existsSync(path.join('settings', 'custom_schema.jsonc'))) {
-            let customSchema = new CustomSchema();
+            const customSchema = new CustomSchema();
             fs.writeJSONSync(path.join('settings', 'custom_schema.jsonc'), customSchema, { spaces: 4 });
         }
         return 0;
     }
 
+    async runScripts() {
+        if (!this.dbConnector) throw new Error('DB connection not ready');
+        if (!fs.existsSync(path.join('settings', 'scripts'))) {
+            logger.info('No scripts provided.');
+            return;
+        }
+        const scripts = fs.readdirSync(path.join('settings', 'scripts'));
+        if (scripts.length === 0) {
+            logger.info('No scripts provided.');
+            return;
+        }
+        const parsedUri = parse(this.uri!);
+        for (const script of scripts) {
+            if (!script.endsWith('.sql')) continue;
+            logger.info(`Running script: ${script}`);
+            execSync(`mysql -h ${parsedUri.host!} --port=${parsedUri.port!.toString()} --protocol=tcp --default-character-set=utf8 -c -u ${parsedUri.userinfo!.split(':')[0]} -p"${parsedUri.userinfo!.split(':')[1]}" ${parsedUri.path?.replace('/', '')} < "${script}"`, {
+                cwd: path.join('settings', 'scripts'),
+                stdio: 'pipe',
+            });
+        }
+    }
+
     async generateData() {
         if (!this.dbConnector) throw new Error('DB connection not ready');
-        let schema: Schema = await Schema.fromJSON(fs.readJSONSync(path.join('settings', 'schema.json')));
+        const schema: Schema = await Schema.fromJSON(fs.readJSONSync(path.join('settings', 'schema.json')));
         let customSchema: CustomSchema = new CustomSchema();
         try {
             customSchema = JSONC.parse(fs.readFileSync(path.join('settings', 'custom_schema.jsonc')).toString());
         } catch (ex) {
             logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
         }
+        try {
+            await this.runScripts();
+        } catch (ex) {
+            logger.error('An error occured while running scripts:');
+            logger.error(ex.message);
+            return;
+        }
         const customizedSchema = CustomizedSchema.create(schema, customSchema);
-
-        this.generator = new Generator(this.dbConnector, customizedSchema, this.progressEventHandler());
+        this.filler = new Filler(this.dbConnector, customizedSchema, this.progressEventHandler());
 
         await this.dbConnector.backupTriggers(customSchema.tables.filter(table => table.maxLines || table.addLines).map(table => table.name));
-        await this.generator.fillTables(this.reset);
+        await this.filler.fillTables(this.reset);
         this.dbConnector.cleanBackupTriggers();
     }
 
@@ -133,8 +151,8 @@ class Main extends CliMainClass {
 
     @KeyPress('n', Modifiers.NONE, 'Skip the current table. Only works during data generation phase.')
     skipTable() {
-        if (!this.generator) return;
+        if (!this.filler) return;
         logger.info('Skipping...');
-        this.generator.gotoNextTable();
+        this.filler.gotoNextTable();
     }
 }

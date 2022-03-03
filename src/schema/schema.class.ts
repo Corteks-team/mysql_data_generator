@@ -1,5 +1,6 @@
 import { IsArray, ValidateNested, IsString, IsBoolean, IsNumber, IsOptional, validateOrReject } from 'class-validator';
 import { Type, plainToClass, classToPlain } from 'class-transformer';
+import { Generators } from '../generation/generators/generators';
 
 export class Schema {
     @IsArray()
@@ -40,13 +41,19 @@ export class ForeignKey {
     column: string = '';
 }
 
+export enum Monotonic {
+    ASC = 'ASC',
+    DESC = 'DESC',
+    NONE = 'NONE',
+}
+
 export class Column {
     @IsString()
     name: string = '';
     @IsString()
-    generator: string = '';
-    @IsBoolean()
-    nullable: boolean = true;
+    generator: Generators = Generators.none;
+    @IsNumber()
+    nullable: number = 0;
     @IsBoolean()
     unique: boolean = false;
     @IsBoolean()
@@ -66,6 +73,13 @@ export class Column {
     @ValidateNested()
     @IsOptional()
     foreignKey?: ForeignKey;
+    @ValidateNested()
+    @IsOptional()
     values?: Values;
+    @IsOptional()
+    @IsString()
+    monotonic: Monotonic = Monotonic.NONE;
+    @IsOptional()
+    @IsString()
+    customFunction?: string;
 }
-

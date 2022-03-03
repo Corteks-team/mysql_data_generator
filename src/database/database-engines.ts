@@ -1,3 +1,4 @@
 export enum DatabaseEngines {
-    MARIADB = 'MariaDB'
+    MARIADB = 'mariadb',
+    MYSQL = 'mysql',
 }

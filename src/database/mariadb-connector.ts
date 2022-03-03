@@ -4,30 +4,27 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { Table, Column, Schema } from '../schema/schema.class';
 import { DatabaseConnector } from './database-connector-builder';
+import { Generators } from '../generation/generators/generators';
+import * as URI from 'uri-js';
+import { Connection, MysqlError } from 'mysql';
 
 export class MariaDBConnector implements DatabaseConnector {
     private dbConnection: Knex;
     private triggers: Trigger[] = [];
     private logger = getLogger();
     private triggerBackupFile: string = path.join('settings', 'triggers.json');
+    private uriComponents: URI.URIComponents;
+    private database: string;
 
     constructor(
-        ip: string,
-        port: number,
-        private database: string,
-        user: string,
-        password: string
+        private uri: string,
     ) {
+        this.uriComponents = URI.parse(this.uri);
+        if (!this.uriComponents.path) throw new Error('Please sepcify database name');
+        this.database = this.uriComponents.path.replace('/', '');
         this.dbConnection = Knex({
             client: 'mysql',
-            connection: {
-                database: database,
-                host: ip,
-                port: port,
-                user: user,
-                password: password,
-                supportBigNumbers: true,
-            },
+            connection: this.uri,
             log: {
                 warn: (message) => {
                     this.logger.warn(message);
@@ -40,8 +37,23 @@ export class MariaDBConnector implements DatabaseConnector {
                 },
                 debug: (message) => {
                     this.logger.debug(message);
-                }
-            }
+                },
+            },
+            pool: {
+                afterCreate: (conn: Connection, done: (err: MysqlError | null, conn: Connection) => void) => {
+                    conn.query('SET foreign_key_checks = OFF;', (err1) => {
+                        if (err1) done(err1, conn);
+                        else
+                            conn.query('SET autocommit = OFF;', (err2) => {
+                                if (err2) done(err2, conn);
+                                else
+                                    conn.query('SET unique_checks = OFF;', (err3) => {
+                                        done(err3, conn);
+                                    });
+                            });
+                    });
+                },
+            },
         }).on('query-error', (err) => {
             this.logger.error(err.code, err.name);
         });
@@ -52,7 +64,9 @@ export class MariaDBConnector implements DatabaseConnector {
     }
 
     public async init(): Promise<void> {
-        await this.dbConnection.raw('SET GLOBAL foreign_key_checks = OFF;');
+        this.logger.warn(`For performance foreign_key_checks, autocommit and unique_checks are disabled during insert.`);
+        this.logger.warn(`They are disabled per connections and should not alter your configuration.`);
+        this.logger.info(`To improve performances further you can update innodb_autoinc_lock_mode = 0 in your my.ini.`);
     }
 
     async countLines(table: Table) {
@@ -60,7 +74,6 @@ export class MariaDBConnector implements DatabaseConnector {
     }
 
     async emptyTable(table: Table) {
-        await this.dbConnection.raw('SET FOREIGN_KEY_CHECKS = 0;');
         await this.dbConnection.raw(`DELETE FROM ${table.name}`);
         await this.dbConnection.raw(`ALTER TABLE ${table.name} AUTO_INCREMENT = 1;`);
     }
@@ -76,11 +89,11 @@ export class MariaDBConnector implements DatabaseConnector {
             .toQuery()
             .replace('insert into', 'insert ignore into');
         const insertResult = await this.dbConnection.raw(query);
+        await this.dbConnection.raw('COMMIT;');
         return insertResult[0].affectedRows;
     }
 
     async destroy() {
-        await this.dbConnection.raw('SET GLOBAL foreign_key_checks = ON;');
         await this.dbConnection.destroy();
     }
 
@@ -91,7 +104,7 @@ export class MariaDBConnector implements DatabaseConnector {
             await this.extractForeignKeys(table);
             return table;
         }));
-        return Schema.fromJSON({ tables: tables });
+        return Schema.fromJSON({ tables });
     }
 
     private async extractColumns(table: Table) {
@@ -107,19 +120,18 @@ export class MariaDBConnector implements DatabaseConnector {
         table.columns = columns.map((mysqlColumn: MySQLColumn) => {
             const column = new Column();
             column.name = mysqlColumn.COLUMN_NAME;
-            column.generator = mysqlColumn.DATA_TYPE;
             if (mysqlColumn.COLUMN_KEY && mysqlColumn.COLUMN_KEY.match(/PRI|UNI/ig)) column.unique = true;
-            if (mysqlColumn.IS_NULLABLE === 'YES') column.nullable = true;
+            column.nullable = mysqlColumn.IS_NULLABLE === 'YES' ? 0.1 : 0;
             column.max = mysqlColumn.CHARACTER_MAXIMUM_LENGTH || mysqlColumn.NUMERIC_PRECISION || 255;
             if (mysqlColumn.COLUMN_TYPE && mysqlColumn.COLUMN_TYPE.includes('unsigned')) column.unsigned = true;
             if (mysqlColumn.EXTRA && mysqlColumn.EXTRA.includes('auto_increment')) column.autoIncrement = true;
             switch (mysqlColumn.DATA_TYPE) {
-                case 'bit':
-                    break;
                 case 'bool':
                 case 'boolean':
+                    column.generator = Generators.boolean;
                     break;
                 case 'smallint':
+                    column.generator = Generators.integer;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 65535;
@@ -129,6 +141,7 @@ export class MariaDBConnector implements DatabaseConnector {
                     }
                     break;
                 case 'mediumint':
+                    column.generator = Generators.integer;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 16777215;
@@ -138,6 +151,7 @@ export class MariaDBConnector implements DatabaseConnector {
                     }
                     break;
                 case 'tinyint':
+                    column.generator = Generators.integer;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 255;
@@ -149,6 +163,7 @@ export class MariaDBConnector implements DatabaseConnector {
                 case 'int':
                 case 'integer':
                 case 'bigint':
+                    column.generator = Generators.integer;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 2147483647;
@@ -161,6 +176,7 @@ export class MariaDBConnector implements DatabaseConnector {
                 case 'dec':
                 case 'float':
                 case 'double':
+                    column.generator = Generators.real;
                     if (column.unsigned) {
                         column.min = 0;
                         column.max = 2147483647;
@@ -172,12 +188,15 @@ export class MariaDBConnector implements DatabaseConnector {
                 case 'date':
                 case 'datetime':
                 case 'timestamp':
+                    column.generator = Generators.date;
                     column.minDate = '01-01-1970';
                     column.maxDate = undefined;
                     break;
                 case 'time':
+                    column.generator = Generators.time;
                     break;
                 case 'year':
+                    column.generator = Generators.integer;
                     column.min = 1901;
                     column.max = 2155;
                     break;
@@ -192,9 +211,15 @@ export class MariaDBConnector implements DatabaseConnector {
                 case 'blob':
                 case 'mediumblob': // 16777215
                 case 'longblob': // 4,294,967,295
+                    column.generator = Generators.string;
                     break;
+                case 'bit':
                 case 'set':
+                    column.generator = Generators.bit;
+                    column.max = mysqlColumn.NUMERIC_PRECISION;
+                    break;
                 case 'enum':
+                    column.generator = Generators.integer;
                     column.max = mysqlColumn.NUMERIC_PRECISION;
                     break;
             }
@@ -205,10 +230,10 @@ export class MariaDBConnector implements DatabaseConnector {
     private extractForeignKeys = async (table: Table) => {
         const foreignKeys = await this.getForeignKeys(table);
         table.referencedTables = [];
-        for (let c = 0; c < table.columns.length; c++) {
-            const column = table.columns[c];
+        for (const column of table.columns) {
             const match = foreignKeys.find((fk) => fk.column.toLowerCase() === column.name.toLowerCase());
             if (match) {
+                column.generator = Generators.foreignKey;
                 column.foreignKey = { table: match.foreignTable, column: match.foreignColumn };
                 column.unique = column.unique || match.uniqueIndex || false;
                 table.referencedTables.push(column.foreignKey.table);
@@ -238,7 +263,7 @@ export class MariaDBConnector implements DatabaseConnector {
             return this.dbConnection.raw(`DROP TRIGGER IF EXISTS ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME};`);
         });
         await Promise.all(promises)
-            .catch(err => console.warn(err.message));
+            .catch(err => this.logger.error(err.message));
     }
 
     public async enableTriggers(table: string): Promise<void> {
@@ -251,7 +276,7 @@ export class MariaDBConnector implements DatabaseConnector {
                 TRIGGER ${trigger.TRIGGER_SCHEMA}.${trigger.TRIGGER_NAME} ${trigger.ACTION_TIMING} ${trigger.EVENT_MANIPULATION}
                 ON ${trigger.EVENT_OBJECT_SCHEMA}.${trigger.EVENT_OBJECT_TABLE}
                 FOR EACH ROW
-                ${trigger.ACTION_STATEMENT}`
+                ${trigger.ACTION_STATEMENT}`,
             );
             this.triggers.splice(i, 1);
         }
@@ -260,7 +285,7 @@ export class MariaDBConnector implements DatabaseConnector {
     async getTablesInformation(): Promise<Table[]> {
         const tableNames = await this.dbConnection
             .select<{ name: string; }[]>([
-                this.dbConnection.raw('t.TABLE_NAME AS name')
+                this.dbConnection.raw('t.TABLE_NAME AS name'),
             ])
             .from('information_schema.tables as t')
             .where('t.TABLE_SCHEMA', this.database)
@@ -280,7 +305,7 @@ export class MariaDBConnector implements DatabaseConnector {
             .from('information_schema.COLUMNS')
             .where({
                 'TABLE_SCHEMA': this.database,
-                'TABLE_NAME': table.name
+                'TABLE_NAME': table.name,
             });
     }
 
@@ -290,14 +315,14 @@ export class MariaDBConnector implements DatabaseConnector {
                 'kcu2.table_name',
                 'kcu2.column_name',
                 'kcu2.constraint_schema',
-                this.dbConnection.raw('1 AS unique_index')
+                this.dbConnection.raw('1 AS unique_index'),
             ])
             .from('information_schema.KEY_COLUMN_USAGE AS kcu2')
             .innerJoin('information_schema.TABLE_CONSTRAINTS AS tc', function () {
                 this.on('tc.CONSTRAINT_SCHEMA', '=', 'kcu2.CONSTRAINT_SCHEMA')
                     .andOn('tc.TABLE_NAME', '=', 'kcu2.TABLE_NAME')
                     .andOn('tc.CONSTRAINT_NAME', '=', 'kcu2.CONSTRAINT_NAME')
-                    .andOnIn('tc.CONSTRAINT_TYPE', ["PRIMARY KEY", "UNIQUE"]);
+                    .andOnIn('tc.CONSTRAINT_TYPE', ['PRIMARY KEY', 'UNIQUE']);
             })
             .groupBy(['kcu2.TABLE_NAME', 'kcu2.CONSTRAINT_NAME'])
             .having(this.dbConnection.raw('count(kcu2.CONSTRAINT_NAME) < 2'))
@@ -308,7 +333,7 @@ export class MariaDBConnector implements DatabaseConnector {
             'kcu.column_name AS column',
             'kcu.referenced_table_name AS foreignTable',
             'kcu.referenced_column_name AS foreignColumn',
-            'unique_index AS uniqueIndex'
+            'unique_index AS uniqueIndex',
         ])
             .from('information_schema.key_column_usage as kcu')
             .leftJoin(subQuery, function () {
@@ -334,7 +359,6 @@ export class MariaDBConnector implements DatabaseConnector {
         let values = [];
         const query = this.dbConnection(foreignTable)
             .distinct(`${foreignTable}.${foreignColumn}`)
-            .orderByRaw('RAND()')
             .limit(limit);
         if (condition) {
             query.andWhere(this.dbConnection.raw(condition));
