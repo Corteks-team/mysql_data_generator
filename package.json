@@ -69,5 +69,6 @@
     "homepage": "https://github.com/Corteks-team/mysql_data_generator#readme",
     "directories": {
         "lib": "lib"
-    }
+    },
+    "packageManager": "yarn@3.2.0"
 }
