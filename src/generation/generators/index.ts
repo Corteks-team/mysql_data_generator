@@ -1,18 +1,18 @@
 import { Random } from 'random-js';
-import { CustomizedTable, CustomizedColumn } from '../../schema/customized-schema.class';
-import { Generators, AbstractGenerator } from './generators';
-
+import { DatabaseConnector } from '../../database/database-connector-builder';
+import { CustomizedColumn, CustomizedTable } from '../../schema/customized-schema.class';
 import { BitGenerator } from './bit.generator';
 import { BooleanGenerator } from './boolean.generator';
 import { DateGenerator } from './date.generator';
+import { ForeignKeyGenerator } from './foreignkey.generator';
+import { FunctionGenerator } from './function.generator';
+import { AbstractGenerator, Generators } from './generators';
 import { IntegerGenerator } from './integer.generator';
 import { RealGenerator } from './real.generator';
 import { StringGenerator } from './string.generator';
 import { TimeGenerator } from './time.generator';
 import { ValuesGenerator } from './values.generator';
-import { ForeignKeyGenerator } from './foreignkey.generator';
-import { DatabaseConnector } from '../../database/database-connector-builder';
-import { FunctionGenerator } from './function.generator';
+
 
 export class GeneratorBuilder {
     constructor(
@@ -55,8 +55,8 @@ export class GeneratorBuilder {
             case Generators.function:
                 FunctionGenerator.validate(table, column);
                 break;
-            default:
             case Generators.none:
+            default:
                 throw new Error(`No generator defined for column: ${table.name}.${column.name}`);
         }
         return true;
@@ -98,8 +98,8 @@ export class GeneratorBuilder {
             case Generators.function:
                 generator = new FunctionGenerator(this.random, this.table, column);
                 break;
-            default:
             case Generators.none:
+            default:
                 throw new Error(`No generator defined for column: ${this.table.name}.${column.name}`);
         }
         return generator;

@@ -1,11 +1,10 @@
-import { TestConnector } from '../test-connector';
-import { Filler } from '../../src/generation/filler';
 import { getLogger } from 'log4js';
-import { CustomizedSchema, CustomizedTable, CustomizedColumn } from '../../src/schema/customized-schema.class';
 import { Builder } from '../../src/builder';
-import { CustomSettings } from '../../src/schema/custom-schema.class';
-import { table } from 'console';
+import { Filler } from '../../src/generation/filler';
 import { Generators } from '../../src/generation/generators/generators';
+import { CustomSettings } from '../../src/schema/custom-schema.class';
+import { CustomizedColumn, CustomizedSchema, CustomizedTable } from '../../src/schema/customized-schema.class';
+import { TestConnector } from '../test-connector';
 
 const logger = getLogger();
 let testConnector: TestConnector;
@@ -28,7 +27,6 @@ describe('Generator', () => {
         const filler = new Filler(
             testConnector,
             customizedSchema,
-            logger
         );
 
         await filler.fillTables(true);
@@ -56,7 +54,6 @@ describe('Generator', () => {
         const generator = new Filler(
             testConnector,
             customizedSchema,
-            logger
         );
         await generator.fillTables(true);
 
@@ -82,7 +79,6 @@ describe('Generator', () => {
         const generator = new Filler(
             testConnector,
             customizedSchema,
-            logger
         );
         await generator.fillTables(true);
 
@@ -104,7 +100,6 @@ describe('Generator', () => {
         const generator = new Filler(
             testConnector,
             customizedSchema,
-            logger
         );
         await generator.fillTables(true);
 
@@ -128,7 +123,6 @@ describe('Generator', () => {
         const generator = new Filler(
             testConnector,
             customizedSchema,
-            logger
         );
         await generator.fillTables(true);
 
@@ -162,7 +156,6 @@ describe('Generator', () => {
         const generator = new Filler(
             testConnector,
             customizedSchema,
-            logger
         );
         await generator.fillTables(true);
 
