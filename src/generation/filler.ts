@@ -126,6 +126,7 @@ export class Filler {
                     try {
                         row[column.name] = generators[c].generate(currentTableRow, row);
                     } catch (ex) {
+                        this.callback({ currentTable: table.name, step: 'generateData', state: 'RUNNING', currentValue: currentNbRows, max: maxLines, comment: (ex as Error).message });
                         break BATCH_LOOP;
                     }
 
@@ -137,6 +138,7 @@ export class Filler {
             insertedRows = await this.dbConnector.insert(table.name, rows);
             currentNbRows += insertedRows;
             if (previousRunRows === currentNbRows) {
+                this.callback({ currentTable: table.name, step: 'generateData', state: 'DONE', currentValue: currentNbRows, max: maxLines, comment: 'Last run did not insert any rows' });
                 break TABLE_LOOP;
             }
             this.callback({ currentTable: table.name, step: 'generateData', state: 'RUNNING', currentValue: currentNbRows, max: maxLines });
