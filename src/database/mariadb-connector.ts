@@ -206,6 +206,7 @@ export class MariaDBConnector implements DatabaseConnector {
                 case 'varbinary':
                 case 'tinyblob':
                 case 'text':
+                case 'tinytext':
                 case 'mediumtext':
                 case 'longtext':
                 case 'blob':
