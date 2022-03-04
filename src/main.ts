@@ -124,16 +124,20 @@ class Main extends CliMainClass {
     }
 
     progressEventHandler() {
-        let previousEvent: ProgressEvent = {} as any;
+        let previousEvent: ProgressEvent = { currentTable: '', currentValue: 0, max: 0, state: 'DONE', step: '' };
         let currentProgress: SingleBar;
         let lastComment: string = '';
         return (event: ProgressEvent) => {
-            if (event.currentTable !== previousEvent.currentTable) {
-                lastComment = '';
-                if (currentProgress) currentProgress.stop();
+            let diff = false;
+            if (previousEvent.currentTable !== event.currentTable) {
                 console.log(colors.green(event.currentTable));
+                diff = true;
             }
-            if (event.step !== previousEvent.step) {
+            if (previousEvent.step !== event.step) {
+                diff = true;
+            }
+            if (diff === true) {
+                lastComment = '';
                 if (currentProgress) currentProgress.stop();
                 currentProgress = new cliProgress.SingleBar({
                     format: `${event.step + new Array(16 - event.step.length).join(' ')} | ${colors.cyan('{bar}')} | {percentage}% | {value}/{total} | {comment}`,
@@ -143,8 +147,8 @@ class Main extends CliMainClass {
             } else {
                 if (currentProgress) currentProgress.update(event.currentValue, { comment: event.comment || lastComment });
                 if (event.comment) lastComment = event.comment;
+                if (event.state === 'DONE') currentProgress.stop();
             }
-            if (event.state === 'DONE') currentProgress.stop();
             previousEvent = event;
         };
     }
