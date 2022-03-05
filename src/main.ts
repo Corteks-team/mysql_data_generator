@@ -22,10 +22,10 @@ class Main extends CliMainClass {
     @CliParameter({ alias: 'db', demandOption: true, description: 'Database URI. Eg: mysql://user:password@127.0.0.1:3306/database' })
     private uri: string | undefined = undefined;
 
-    @CliParameter()
+    @CliParameter({ description: 'Extrat schema information and generate default settings' })
     private analyse: boolean = false;
 
-    @CliParameter()
+    @CliParameter({ description: 'Empty tables before filling them' })
     private reset: boolean = false;
 
     private dbConnector: DatabaseConnector | undefined;
