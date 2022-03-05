@@ -1,12 +1,12 @@
+import * as fs from 'fs-extra';
 import Knex from 'knex';
 import { getLogger } from 'log4js';
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import { Table, Column, Schema } from '../schema/schema.class';
-import { DatabaseConnector } from './database-connector-builder';
-import { Generators } from '../generation/generators/generators';
-import * as URI from 'uri-js';
 import { Connection, MysqlError } from 'mysql';
+import * as path from 'path';
+import * as URI from 'uri-js';
+import { Generators } from '../generation/generators/generators';
+import { Column, Schema, Table } from '../schema/schema.class';
+import { DatabaseConnector } from './database-connector-builder';
 
 export class MariaDBConnector implements DatabaseConnector {
     private dbConnection: Knex;
@@ -84,7 +84,7 @@ export class MariaDBConnector implements DatabaseConnector {
 
     async insert(table: string, rows: any[]): Promise<number> {
         if (rows.length === 0) return 0;
-        const query = await this.dbConnection(table)
+        const query = this.dbConnection(table)
             .insert(rows)
             .toQuery()
             .replace('insert into', 'insert ignore into');
@@ -114,7 +114,7 @@ export class MariaDBConnector implements DatabaseConnector {
             .filter((column: MySQLColumn) => {
                 return ['enum', 'set'].includes(column.DATA_TYPE || '');
             }).forEach((column: MySQLColumn) => {
-                column.NUMERIC_PRECISION = column.COLUMN_TYPE.match(/[enum,set]\((.*)\)$/)![1].split('\',\'').length;
+                column.NUMERIC_PRECISION = column.COLUMN_TYPE.match(/(enum|set)\((.*)\)$/)![1].split('\',\'').length;
             });
 
         table.columns = columns.map((mysqlColumn: MySQLColumn) => {
@@ -293,16 +293,15 @@ export class MariaDBConnector implements DatabaseConnector {
             .andWhere('t.TABLE_TYPE', 'BASE TABLE')
             .groupBy('t.TABLE_SCHEMA', 't.TABLE_NAME');
 
-        const tables = tableNames.map((row) => {
+        return tableNames.map((row) => {
             const table = new Table();
             table.name = row.name;
             return table;
         });
-        return tables;
     }
 
     async getColumnsInformation(table: Table) {
-        return await this.dbConnection.select()
+        return this.dbConnection.select()
             .from('information_schema.COLUMNS')
             .where({
                 'TABLE_SCHEMA': this.database,
@@ -329,8 +328,7 @@ export class MariaDBConnector implements DatabaseConnector {
             .having(this.dbConnection.raw('count(kcu2.CONSTRAINT_NAME) < 2'))
             .as('indexes');
 
-
-        const foreignKeys = await this.dbConnection.select([
+        return this.dbConnection.select([
             'kcu.column_name AS column',
             'kcu.referenced_table_name AS foreignTable',
             'kcu.referenced_column_name AS foreignColumn',
@@ -344,8 +342,6 @@ export class MariaDBConnector implements DatabaseConnector {
             })
             .where('kcu.table_name', table.name)
             .whereNotNull('kcu.referenced_column_name');
-
-        return foreignKeys;
     }
 
     async getValuesForForeignKeys(

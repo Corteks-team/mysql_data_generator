@@ -21,9 +21,13 @@ export class CustomSettings {
     @IsArray()
     @ValidateNested({ each: true })
     tablesToFill: string[] = [];
+    /**
+     * A default value has been provided to maxLengthValue as this can drastically improve performances. This is a parameter which used to be
+     * defined a lot by user anyway. The value of 36 has been chosen to allow usage of UID in string generator.
+     */
     @IsNumber()
     @IsOptional()
-    maxLengthValue?: number;
+    maxLengthValue?: number = 36;
     values: { [key: string]: any[]; } = {};
     options: {
         generators: Generators[],
