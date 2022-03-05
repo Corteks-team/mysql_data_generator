@@ -38,7 +38,7 @@ class Main extends CliMainClass {
         try {
             this.dbConnector = await dbConnectorBuilder.build();
         } catch (err) {
-            logger.error(err.message);
+            logger.error((err as Error).message);
             return 1;
         }
         if (!fs.pathExistsSync('settings')) {
@@ -50,11 +50,11 @@ class Main extends CliMainClass {
         try {
             if (this.analyse) {
                 return await this.generateSchemaFromDB();
-            };
+            }
 
             await this.generateData();
         } catch (ex) {
-            if (ex.code === 'ENOENT') {
+            if ((ex as any).code === 'ENOENT') {
                 logger.error('Unable to read from ./settings/schema.json. Please run with --analyse first.');
             } else {
                 logger.error(ex);
@@ -112,7 +112,7 @@ class Main extends CliMainClass {
             await this.runScripts();
         } catch (ex) {
             logger.error('An error occured while running scripts:');
-            logger.error(ex.message);
+            logger.error((ex as Error).message);
             return;
         }
         const customizedSchema = CustomizedSchema.create(schema, customSchema);
@@ -129,7 +129,7 @@ class Main extends CliMainClass {
         return (event: ProgressEvent) => {
             let diff = false;
             if (previousEvent.currentTable !== event.currentTable) {
-                console.log(colors.green(event.currentTable));
+                logger.info(colors.green(event.currentTable));
                 diff = true;
             }
             if (previousEvent.step !== event.step) {
