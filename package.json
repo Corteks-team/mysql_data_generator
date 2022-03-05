@@ -1,6 +1,6 @@
 {
     "name": "@corteks/mysql-data-generator",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "author": "Corteks",
     "keywords": [
         "database",
@@ -25,9 +25,8 @@
     },
     "dependencies": {
         "@corteks/clify": "^0.2.1",
-        "@types/cli-progress": "^3.8.0",
         "class-transformer": "^0.3.1",
-        "class-validator": "^0.12.2",
+        "class-validator": "^0.13.2",
         "cli-progress": "^3.8.2",
         "colors": "^1.4.0",
         "fs-extra": "^9.0.1",
@@ -41,6 +40,7 @@
         "yargs": "^15.4.1"
     },
     "devDependencies": {
+        "@types/cli-progress": "^3.8.0",
         "@types/fs-extra": "^8.1.1",
         "@types/jest": "^25.2.3",
         "@types/mysql": "^2.15.15",
@@ -69,5 +69,6 @@
     "homepage": "https://github.com/Corteks-team/mysql_data_generator#readme",
     "directories": {
         "lib": "lib"
-    }
+    },
+    "packageManager": "yarn@3.2.0"
 }
