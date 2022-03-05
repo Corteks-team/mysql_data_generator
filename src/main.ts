@@ -28,6 +28,9 @@ class Main extends CliMainClass {
     @CliParameter({ description: 'Empty tables before filling them' })
     private reset: boolean = false;
 
+    @CliParameter({ description: 'Schema filename to use. Will be generated with --analyse' })
+    private schema: string = 'schema';
+
     private dbConnector: DatabaseConnector | undefined;
     private filler: Filler | undefined;
 
@@ -55,7 +58,7 @@ class Main extends CliMainClass {
             await this.generateData();
         } catch (ex) {
             if ((ex as any).code === 'ENOENT') {
-                logger.error('Unable to read from ./settings/schema.json. Please run with --analyse first.');
+                logger.error(`Unable to read from ./settings/${this.schema}.json. Please run with --analyse first.`);
             } else {
                 logger.error(ex);
             }
@@ -69,21 +72,23 @@ class Main extends CliMainClass {
     async generateSchemaFromDB() {
         if (!this.dbConnector) throw new Error('DB connection not ready');
         const schema = await this.dbConnector.getSchema();
-        fs.writeJSONSync(path.join('settings', 'schema.json'), schema.toJSON(), { spaces: 4 });
-        if (!fs.existsSync(path.join('settings', 'custom_schema.jsonc'))) {
+        fs.writeJSONSync(path.join('settings', `${this.schema}.json`), schema.toJSON(), { spaces: 4 });
+        if (!fs.existsSync(path.join('settings', `${this.schema}_custom.jsonc`))) {
             const customSchema = new CustomSchema();
-            fs.writeJSONSync(path.join('settings', 'custom_schema.jsonc'), customSchema, { spaces: 4 });
+            fs.writeJSONSync(path.join('settings', `${this.schema}_custom.jsonc`), customSchema, { spaces: 4 });
         }
         return 0;
     }
 
     async runScripts() {
         if (!this.dbConnector) throw new Error('DB connection not ready');
-        if (!fs.existsSync(path.join('settings', 'scripts'))) {
+        const scriptsFolder = path.join('settings', 'scripts');
+        if (!fs.existsSync(scriptsFolder)) {
+            fs.mkdirSync(scriptsFolder);
             logger.info('No scripts provided.');
             return;
         }
-        const scripts = fs.readdirSync(path.join('settings', 'scripts'));
+        const scripts = fs.readdirSync(scriptsFolder);
         if (scripts.length === 0) {
             logger.info('No scripts provided.');
             return;
@@ -101,12 +106,12 @@ class Main extends CliMainClass {
 
     async generateData() {
         if (!this.dbConnector) throw new Error('DB connection not ready');
-        const schema: Schema = await Schema.fromJSON(fs.readJSONSync(path.join('settings', 'schema.json')));
+        const schema: Schema = await Schema.fromJSON(fs.readJSONSync(path.join('settings', `${this.schema}.json`)));
         let customSchema: CustomSchema = new CustomSchema();
         try {
-            customSchema = JSONC.parse(fs.readFileSync(path.join('settings', 'custom_schema.jsonc')).toString());
+            customSchema = JSONC.parse(fs.readFileSync(path.join('settings', `${this.schema}_custom.jsonc`)).toString());
         } catch (ex) {
-            logger.warn('Unable to read ./settings/custom_schema.json, this will not take any customization into account.');
+            logger.warn(`Unable to read ./settings/${this.schema}_custom.json, this will not take any customization into account.`);
         }
         try {
             await this.runScripts();

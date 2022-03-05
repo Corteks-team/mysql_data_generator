@@ -1,6 +1,6 @@
 This is a tool to easily fill a SQL database.
 It is able to analyse a schema and generate a `settings/schema.jsonc` which will be used to generate accurate data. It does its best to handle foreign keys.
-You can provide a `settings/custom_schema.jsonc` to customize `settings/schema.jsonc` during the generation phase. This will allow you to override datatype for a column, force the use of a foreign key
+You can provide a `settings/schema_custom.jsonc` to customize `settings/schema.jsonc` during the generation phase. This will allow you to override datatype for a column, force the use of a foreign key
 or specify a list of values.
 
 ## functionalities
@@ -16,13 +16,13 @@ or specify a list of values.
 
 The first step is to analyse your database to generate a `settings/schema.jsonc` by providing database credentials:
 
-```
-npm install -g @corteks/mysql-data-generator
+The `schema` parameter allows you to specify a name for the output files and differentiate between multiple schemas and setups.
 
-mysqldatagen --db mysql://user:password@127.0.0.1:3306/database --analyse
+```
+npx @corteks/mysql-data-generator --db mysql://user:password@127.0.0.1:3306/database --analyse --schema schema
 ```
 
-If you want to customize the schema, modify the default `settings/custom_schema.jsonc` that has also be generated.
+If you want to customize the schema, modify the default `settings/schema_custom.jsonc` that has also be generated.
 
 ## 2. Data generation
 
@@ -42,7 +42,7 @@ For every tables listed in `settings/schema.jsonc`, the tool will:
 -   insert rows until it reaches the defined table limit
 -   columns in table are ordered accordingly to your custom schema so you can rely on other column value in the same row.
 
-Available options in `custom_schema.json`:
+Available options in `schema_custom.json`:
 
 -   `settings`: Global settings
     -   `disableTriggers: boolean` // disable triggers per table during process and recreate them afterward
