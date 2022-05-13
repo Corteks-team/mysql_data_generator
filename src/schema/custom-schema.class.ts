@@ -83,6 +83,8 @@ export class CustomTable {
     addLines?: number;
     @IsBoolean()
     disableTriggers?: boolean;
+    @IsString()
+    template?: any;
 }
 
 type CustomColumn = { name: string; } & Partial<Column>;

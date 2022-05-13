@@ -13,6 +13,7 @@ export enum Generators {
     values = 'values',
     foreignKey = 'foreignKey',
     function = 'function',
+    faker = 'faker',
 }
 
 export abstract class AbstractGenerator<T>{
@@ -22,7 +23,7 @@ export abstract class AbstractGenerator<T>{
         protected column: CustomizedColumn,
     ) { }
 
-    public static validate(table: CustomizedTable, column: CustomizedColumn): boolean { return true };
+    public static validate(table: CustomizedTable, column: CustomizedColumn): boolean { return true; };
 
     public async init(): Promise<AbstractGenerator<T>> { return this; }
 
