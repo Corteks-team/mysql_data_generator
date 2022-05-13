@@ -6,9 +6,20 @@
     "configurations": [
         {
             "type": "node",
-            "request": "attach",
+            "request": "launch",
             "name": "attach to process",
-            "port": 9229
+            "args": [
+                "${workspaceFolder}/src/main.ts"
+            ],
+            "runtimeArgs": [
+                "--nolazy",
+                "-r",
+                "ts-node/register",
+            ],
+            "sourceMaps": true,
+            "envFile": "${workspaceFolder}/.env",
+            "cwd": "${workspaceRoot}",
+            "console": "integratedTerminal",
         }
     ]
 }
