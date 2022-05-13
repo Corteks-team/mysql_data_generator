@@ -24,6 +24,8 @@ The `schema` parameter allows you to specify a name for the output files and dif
 npx @corteks/mysql-data-generator --db mysql://user:password@127.0.0.1:3306/database --analyse --schema schema
 ```
 
+The `--schema` parameter allows you to generate mutliple configuration with different names.
+
 If you want to customize the schema, modify the default `settings/schema_custom.jsonc` that has also be generated.
 
 ## 2. Data generation
@@ -62,7 +64,7 @@ Available options in `schema_custom.json`:
   - `Table.addLines: number` // Number of rows to be inserted on a single run. The number of lines resulting in the table will not exceed `Table.maxLines`
   - `Table.columns: Column[]` // list of columns handled by the tool
     - `Column.name: string` // column name
-    - `Column.generator: bit | boolean | date | foreignKey | integer | real | time | string | values | function` // data type generator used for this column
+    - `Column.generator: bit | boolean | date | foreignKey | integer | real | time | string | values | function | faker` // data type generator used for this column
     - `Column.[key: string]: any[]` // list of options for this column
     - `Column.foreignKey: { table: string, column: string, where: string }` // link to the table.column referenced by this foreign key. A custom clause can ba added to filter value from the foreign column
     - `Column.values: string | any[] | { [key: string]: number }`
@@ -70,3 +72,5 @@ Available options in `schema_custom.json`:
             // You can also directly specify an array of strings for values.
             // Or you can use an object to specify a ratio per value. Ratio will be a number between 0 and 1.
     - `Column.customFunction: (rowIndex: number, row: { [key: string]: string | number }` // a string representing a javascript custom function. It will receive the row index and the full row as arguments.
+    - `Column.template: string` // a template string for `faker` generator. See [fakerjs](https://www.npmjs.com/package/@faker-js/faker) for more information.
+    - `Column.locale: string` // locale used by the faker generator.
