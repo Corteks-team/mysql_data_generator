@@ -416,6 +416,7 @@ __metadata:
   resolution: "@corteks/mysql-data-generator@workspace:."
   dependencies:
     "@corteks/clify": ^0.2.1
+    "@faker-js/faker": ^6.3.1
     "@types/cli-progress": ^3.8.0
     "@types/fs-extra": ^8.1.1
     "@types/jest": ^25.2.3
@@ -446,6 +447,13 @@ __metadata:
     mysqldatagen: bin/mysqldatagen
   languageName: unknown
   linkType: soft
+
+"@faker-js/faker@npm:^6.3.1":
+  version: 6.3.1
+  resolution: "@faker-js/faker@npm:6.3.1"
+  checksum: 05071e952248f4565218a95b089ef8f616130c6ff914bb416ba7c891f81d123b637c2abe8aa2eb7b207b5d4b8bd9c75c8c2133019d2d11db4176948737a95813
+  languageName: node
+  linkType: hard
 
 "@gar/promisify@npm:^1.0.1":
   version: 1.1.3

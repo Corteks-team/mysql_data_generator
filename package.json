@@ -25,6 +25,7 @@
     },
     "dependencies": {
         "@corteks/clify": "^0.2.1",
+        "@faker-js/faker": "^6.3.1",
         "class-transformer": "^0.3.1",
         "class-validator": "^0.13.2",
         "cli-progress": "^3.8.2",
