@@ -78,6 +78,7 @@ export class CustomizedSchema extends CustomSchema {
             if (customColumn.unique !== undefined) customizedColumnBuilder.set('unique', customColumn.unique);
             if (customColumn.unsigned !== undefined) customizedColumnBuilder.set('unsigned', customColumn.unsigned);
             if (customColumn.customFunction !== undefined) customizedColumnBuilder.set('customFunction', customColumn.customFunction);
+            if (customColumn.template !== undefined) customizedColumnBuilder.set('template', customColumn.template);
             if (customColumn?.foreignKey) {
                 customizedColumnBuilder.set('foreignKey', customColumn.foreignKey);
                 customizedTable.referencedTables.push(customColumn.foreignKey.table);

@@ -1,5 +1,5 @@
-import { IsArray, ValidateNested, IsString, IsBoolean, IsNumber, IsOptional, validateOrReject } from 'class-validator';
-import { Type, plainToClass, classToPlain } from 'class-transformer';
+import { classToPlain, plainToClass, Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString, ValidateNested, validateOrReject } from 'class-validator';
 import { Generators } from '../generation/generators/generators';
 
 export class Schema {
@@ -82,4 +82,10 @@ export class Column {
     @IsOptional()
     @IsString()
     customFunction?: string;
+    @IsOptional()
+    @IsString()
+    template?: string;
+    @IsOptional()
+    @IsString()
+    locale?: string;
 }

@@ -4,6 +4,7 @@ import { CustomizedColumn, CustomizedTable } from '../../schema/customized-schem
 import { BitGenerator } from './bit.generator';
 import { BooleanGenerator } from './boolean.generator';
 import { DateGenerator } from './date.generator';
+import { FakerGenerator } from './faker.generator';
 import { ForeignKeyGenerator } from './foreignkey.generator';
 import { FunctionGenerator } from './function.generator';
 import { AbstractGenerator, Generators } from './generators';
@@ -55,6 +56,9 @@ export class GeneratorBuilder {
             case Generators.function:
                 FunctionGenerator.validate(table, column);
                 break;
+            case Generators.faker:
+                FakerGenerator.validate(table, column);
+                break;
             case Generators.none:
             default:
                 throw new Error(`No generator defined for column: ${table.name}.${column.name}`);
@@ -97,6 +101,9 @@ export class GeneratorBuilder {
                 break;
             case Generators.function:
                 generator = new FunctionGenerator(this.random, this.table, column);
+                break;
+            case Generators.faker:
+                generator = new FakerGenerator(this.random, this.table, column);
                 break;
             case Generators.none:
             default:
