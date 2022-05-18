@@ -74,8 +74,8 @@ export class MariaDBConnector implements DatabaseConnector {
     }
 
     async emptyTable(table: Table) {
-        await this.dbConnection.raw(`DELETE FROM ${table.name}`);
-        await this.dbConnection.raw(`ALTER TABLE ${table.name} AUTO_INCREMENT = 1;`);
+        await this.dbConnection.raw(`DELETE FROM \`${table.name}\``);
+        await this.dbConnection.raw(`ALTER TABLE \`${table.name}\` AUTO_INCREMENT = 1;`);
     }
 
     async executeRawQuery(query: string) {
