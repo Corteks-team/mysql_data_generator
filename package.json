@@ -27,7 +27,7 @@
         "@corteks/clify": "^0.2.1",
         "@faker-js/faker": "^6.3.1",
         "class-transformer": "^0.3.1",
-        "class-validator": "^0.13.2",
+        "class-validator": "^0.14.0",
         "cli-progress": "^3.8.2",
         "colors": "^1.4.0",
         "fs-extra": "^9.0.1",
